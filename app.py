@@ -1,20 +1,31 @@
 import os
-import sqlite3
 import hashlib
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pydantic import BaseModel
 import uvicorn
 
-# --- AYARLAR & GÜVENLİK ---
+# PostgreSQL veya SQLite otomatik seçimi
+DATABASE_URL = os.getenv("DATABASE_URL")
+IS_POSTGRES = DATABASE_URL is not None and DATABASE_URL.startswith("postgres")
+
+if IS_POSTGRES:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    # Render veya Neon kimi zaman "postgres://" verir, psycopg2 "postgresql://" bekler
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+else:
+    import sqlite3
+
 SECRET_KEY = "mannas-super-secret-jwt-key-change-in-production"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480
-DB_FILE = "crm_database.db"
+DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crm_database.db")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 app = FastAPI(title="Dental CRM & Satış Takip Portalı")
@@ -25,36 +36,73 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return hash_password(plain_password) == hashed_password
 
-# --- VERİTABANI İLKLENDİRME ---
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
+def get_db():
+    if IS_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL)
+        return conn
+    else:
+        conn = sqlite3.connect(DB_FILE)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+def execute_query(query: str, params=(), fetch_one=False, fetch_all=False, commit=False):
+    conn = get_db()
+    if IS_POSTGRES:
+        # PostgreSQL için ? yerine %s dönüştürmesi
+        formatted_query = query.replace("?", "%s")
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+    else:
+        formatted_query = query
+        cursor = conn.cursor()
+
+    cursor.execute(formatted_query, params)
+    result = None
+    if fetch_one:
+        row = cursor.fetchone()
+        result = dict(row) if row else None
+    elif fetch_all:
+        rows = cursor.fetchall()
+        result = [dict(r) for r in rows]
     
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    if commit:
+        conn.commit()
+    
+    cursor.close()
+    conn.close()
+    return result
+
+def init_db():
+    auto_id = "SERIAL PRIMARY KEY" if IS_POSTGRES else "INTEGER PRIMARY KEY AUTOINCREMENT"
+    
+    # Kullanıcılar
+    execute_query(f'''CREATE TABLE IF NOT EXISTS users (
+        id {auto_id},
         username TEXT UNIQUE,
         password_hash TEXT,
         full_name TEXT,
         role TEXT
-    )''')
+    )''', commit=True)
 
-    c.execute('''CREATE TABLE IF NOT EXISTS staff (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    # Personel
+    execute_query(f'''CREATE TABLE IF NOT EXISTS staff (
+        id {auto_id},
         name TEXT UNIQUE,
         department TEXT,
         title TEXT
-    )''')
+    )''', commit=True)
 
-    c.execute('''CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    # Ürünler
+    execute_query(f'''CREATE TABLE IF NOT EXISTS products (
+        id {auto_id},
         brand TEXT,
         model TEXT UNIQUE,
         price REAL,
         stock INTEGER
-    )''')
+    )''', commit=True)
 
-    c.execute('''CREATE TABLE IF NOT EXISTS sales (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    # Satışlar
+    execute_query(f'''CREATE TABLE IF NOT EXISTS sales (
+        id {auto_id},
         date TEXT,
         staff_name TEXT,
         customer_name TEXT,
@@ -64,28 +112,29 @@ def init_db():
         price REAL,
         quantity INTEGER,
         total REAL
-    )''')
+    )''', commit=True)
 
-    c.execute('''CREATE TABLE IF NOT EXISTS interactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    # Müşteri Görüşmeleri
+    execute_query(f'''CREATE TABLE IF NOT EXISTS interactions (
+        id {auto_id},
         date TEXT,
         customer_name TEXT,
         devices TEXT,
         notes TEXT
-    )''')
+    )''', commit=True)
 
-    # Admin kullanıcısı (admin / admin123)
-    c.execute("SELECT id FROM users WHERE username = 'admin'")
-    if not c.fetchone():
-        hashed = hash_password("admin123")
-        c.execute("INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)",
-                  ("admin", hashed, "Sistem Yöneticisi", "Admin"))
+    # Varsayılan Admin
+    user = execute_query("SELECT id FROM users WHERE username = ?", ("admin",), fetch_one=True)
+    if not user:
+        execute_query("INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)",
+                      ("admin", hash_password("admin123"), "Sistem Yöneticisi", "Admin"), commit=True)
     else:
-        c.execute("UPDATE users SET password_hash = ? WHERE username = 'admin'", (hash_password("admin123"),))
+        execute_query("UPDATE users SET password_hash = ? WHERE username = 'admin'",
+                      (hash_password("admin123"),), commit=True)
 
-    # Personel yükleme
-    c.execute("SELECT COUNT(*) FROM staff")
-    if c.fetchone()[0] == 0:
+    # Tohum veriler: Personel
+    staff_count = execute_query("SELECT COUNT(*) as count FROM staff", fetch_one=True)
+    if staff_count and staff_count["count"] == 0:
         seed_staff = [
             ("NEVZAT KİRTİŞ", "KURUMSAL SATIŞ", "KURUMSAL İLİŞKİLER DİREKTÖRÜ"),
             ("SAMET ŞEN", "GENEL SATIŞ", "SATIŞ MÜDÜRÜ"),
@@ -93,11 +142,12 @@ def init_db():
             ("SEDAT TUTKA", "SATIŞ", "SATIŞ TEMSİLCİSİ"),
             ("ALİ CAN ÇIPA", "KURUMSAL SATIŞ", "KURUMSAL SATIŞ TEMSİLCİSİ")
         ]
-        c.executemany("INSERT INTO staff (name, department, title) VALUES (?, ?, ?)", seed_staff)
+        for item in seed_staff:
+            execute_query("INSERT INTO staff (name, department, title) VALUES (?, ?, ?) ON CONFLICT DO NOTHING", item, commit=True)
 
-    # Ürünleri yükleme
-    c.execute("SELECT COUNT(*) FROM products")
-    if c.fetchone()[0] == 0:
+    # Tohum veriler: Ürünler
+    prod_count = execute_query("SELECT COUNT(*) as count FROM products", fetch_one=True)
+    if prod_count and prod_count["count"] == 0:
         seed_products = [
             ("STERN WEBER", "S200 ORTHO", 9500.0, 1),
             ("STERN WEBER", "S200 +", 12000.0, 40),
@@ -121,11 +171,12 @@ def init_db():
             ("MY RAY", "HYPERION X5 - 2D", 13500.0, 21),
             ("MY RAY", "SEFALOMETRİ SENSÖR ve ATACHMAN", 8000.0, 4)
         ]
-        c.executemany("INSERT INTO products (brand, model, price, stock) VALUES (?, ?, ?, ?)", seed_products)
+        for item in seed_products:
+            execute_query("INSERT INTO products (brand, model, price, stock) VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING", item, commit=True)
 
-    # Satış kayıtları yükleme
-    c.execute("SELECT COUNT(*) FROM sales")
-    if c.fetchone()[0] == 0:
+    # Tohum veriler: Satışlar
+    sales_count = execute_query("SELECT COUNT(*) as count FROM sales", fetch_one=True)
+    if sales_count and sales_count["count"] == 0:
         seed_sales = [
             ("2026-08-21", "NEVZAT KİRTİŞ", "İstanbul Üniversitesi Çapa Diş Hekimliği Fakültesi", "İstanbul", "STERN WEBER", "S300", 15500.0, 1, 15500.0),
             ("2026-07-22", "SAMET ŞEN", "Ercan TAŞ", "Tekirdağ", "MY RAY", "8000 B", 3900.0, 1, 3900.0),
@@ -134,19 +185,11 @@ def init_db():
             ("2026-02-25", "ALİ CAN ÇIPA", "Gotham ADSM", "İstanbul", "STERN WEBER", "S200 ORTHO", 9500.0, 2, 19000.0),
             ("2026-08-21", "HAKAN BEHRAMOĞLU", "ahmet", "erzincan", "STERN WEBER", "S 380 TRC", 25000.0, 4, 100000.0)
         ]
-        c.executemany("INSERT INTO sales (date, staff_name, customer_name, customer_location, brand, model, price, quantity, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", seed_sales)
-
-    conn.commit()
-    conn.close()
+        for item in seed_sales:
+            execute_query("INSERT INTO sales (date, staff_name, customer_name, customer_location, brand, model, price, quantity, total) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", item, commit=True)
 
 init_db()
 
-def get_db():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-# --- AUTH YARDIMCILARI ---
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -163,7 +206,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Oturum süresi doldu")
     return username
 
-# --- PYDANTIC MODELLERİ ---
 class SaleCreate(BaseModel):
     date: str
     staff_name: str
@@ -184,14 +226,9 @@ class InteractionCreate(BaseModel):
     devices: str
     notes: str
 
-# --- API ENDPOINT'LERİ ---
 @app.post("/api/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username = ?", (form_data.username,))
-    user = c.fetchone()
-    conn.close()
+    user = execute_query("SELECT * FROM users WHERE username = ?", (form_data.username,), fetch_one=True)
     if not user or not verify_password(form_data.password, user["password_hash"]):
         raise HTTPException(status_code=400, detail="Hatalı kullanıcı adı veya şifre")
     access_token = create_access_token(data={"sub": user["username"], "name": user["full_name"]})
@@ -199,108 +236,69 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @app.get("/api/dashboard")
 def get_dashboard(_: str = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT SUM(total), SUM(quantity), COUNT(id) FROM sales")
-    total_revenue, total_units, total_sales_count = c.fetchone()
-    c.execute("SELECT SUM(stock), COUNT(id) FROM products")
-    total_stock, total_sku = c.fetchone()
-    c.execute("SELECT staff_name, SUM(total) as revenue FROM sales GROUP BY staff_name ORDER BY revenue DESC")
-    staff_sales = [dict(row) for row in c.fetchall()]
-    c.execute("SELECT brand, SUM(total) as revenue FROM sales GROUP BY brand ORDER BY revenue DESC")
-    brand_sales = [dict(row) for row in c.fetchall()]
-    conn.close()
+    kpi = execute_query("SELECT SUM(total) as rev, SUM(quantity) as qty, COUNT(id) as cnt FROM sales", fetch_one=True)
+    stock_kpi = execute_query("SELECT SUM(stock) as total_stock, COUNT(id) as total_sku FROM products", fetch_one=True)
+    staff_sales = execute_query("SELECT staff_name, SUM(total) as revenue FROM sales GROUP BY staff_name ORDER BY revenue DESC", fetch_all=True)
+    brand_sales = execute_query("SELECT brand, SUM(total) as revenue FROM sales GROUP BY brand ORDER BY revenue DESC", fetch_all=True)
+
     return {
         "kpis": {
-            "total_revenue": total_revenue or 0.0,
-            "total_units": total_units or 0,
-            "total_sales_count": total_sales_count or 0,
-            "total_stock": total_stock or 0,
-            "total_sku": total_sku or 0
+            "total_revenue": (kpi["rev"] if kpi and kpi["rev"] else 0.0),
+            "total_units": (kpi["qty"] if kpi and kpi["qty"] else 0),
+            "total_sales_count": (kpi["cnt"] if kpi and kpi["cnt"] else 0),
+            "total_stock": (stock_kpi["total_stock"] if stock_kpi and stock_kpi["total_stock"] else 0),
+            "total_sku": (stock_kpi["total_sku"] if stock_kpi and stock_kpi["total_sku"] else 0)
         },
-        "charts": {"staff_sales": staff_sales, "brand_sales": brand_sales}
+        "charts": {"staff_sales": staff_sales or [], "brand_sales": brand_sales or []}
     }
 
 @app.get("/api/products")
 def get_products(_: str = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM products ORDER BY brand, model")
-    rows = [dict(r) for r in c.fetchall()]
-    conn.close()
-    return rows
+    return execute_query("SELECT * FROM products ORDER BY brand, model", fetch_all=True)
 
 @app.put("/api/products/{product_id}")
 def update_product(product_id: int, item: ProductUpdate, _: str = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("UPDATE products SET price = ?, stock = ? WHERE id = ?", (item.price, item.stock, product_id))
-    conn.commit()
-    conn.close()
+    execute_query("UPDATE products SET price = ?, stock = ? WHERE id = ?", (item.price, item.stock, product_id), commit=True)
     return {"status": "ok"}
 
 @app.get("/api/sales")
 def get_sales(_: str = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM sales ORDER BY date DESC, id DESC")
-    rows = [dict(r) for r in c.fetchall()]
-    conn.close()
-    return rows
+    return execute_query("SELECT * FROM sales ORDER BY date DESC, id DESC", fetch_all=True)
 
 @app.post("/api/sales")
 def add_sale(sale: SaleCreate, _: str = Depends(get_current_user)):
     total = round(sale.price * sale.quantity, 2)
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''INSERT INTO sales 
+    execute_query('''INSERT INTO sales 
         (date, staff_name, customer_name, customer_location, brand, model, price, quantity, total) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-        (sale.date, sale.staff_name, sale.customer_name, sale.customer_location, sale.brand, sale.model, sale.price, sale.quantity, total)
+        (sale.date, sale.staff_name, sale.customer_name, sale.customer_location, sale.brand, sale.model, sale.price, sale.quantity, total),
+        commit=True
     )
-    c.execute("UPDATE products SET stock = MAX(0, stock - ?) WHERE model = ?", (sale.quantity, sale.model))
-    conn.commit()
-    conn.close()
+    if IS_POSTGRES:
+        execute_query("UPDATE products SET stock = GREATEST(0, stock - ?) WHERE model = ?", (sale.quantity, sale.model), commit=True)
+    else:
+        execute_query("UPDATE products SET stock = MAX(0, stock - ?) WHERE model = ?", (sale.quantity, sale.model), commit=True)
     return {"status": "ok"}
 
 @app.delete("/api/sales/{sale_id}")
 def delete_sale(sale_id: int, _: str = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("DELETE FROM sales WHERE id = ?", (sale_id,))
-    conn.commit()
-    conn.close()
+    execute_query("DELETE FROM sales WHERE id = ?", (sale_id,), commit=True)
     return {"status": "ok"}
 
 @app.get("/api/staff")
 def get_staff(_: str = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM staff")
-    rows = [dict(r) for r in c.fetchall()]
-    conn.close()
-    return rows
+    return execute_query("SELECT * FROM staff", fetch_all=True)
 
 @app.get("/api/interactions")
 def get_interactions(_: str = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM interactions ORDER BY id DESC")
-    rows = [dict(r) for r in c.fetchall()]
-    conn.close()
-    return rows
+    return execute_query("SELECT * FROM interactions ORDER BY id DESC", fetch_all=True)
 
 @app.post("/api/interactions")
 def add_interaction(item: InteractionCreate, _: str = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("INSERT INTO interactions (date, customer_name, devices, notes) VALUES (?, ?, ?, ?)",
-              (item.date, item.customer_name, item.devices, item.notes))
-    conn.commit()
-    conn.close()
+    execute_query("INSERT INTO interactions (date, customer_name, devices, notes) VALUES (?, ?, ?, ?)",
+                  (item.date, item.customer_name, item.devices, item.notes), commit=True)
     return {"status": "ok"}
 
-# --- ARAYÜZ ---
 @app.get("/", response_class=HTMLResponse)
 def index():
     return """
@@ -383,7 +381,7 @@ def index():
             <div id="section-dashboard" class="space-y-6">
                 <div class="flex items-center justify-between">
                     <h1 class="text-2xl font-bold text-slate-800">Genel Durum Paneli</h1>
-                    <span class="text-xs text-slate-500 bg-white border px-3 py-1.5 rounded-lg shadow-sm font-medium">Canlı Veri</span>
+                    <span class="text-xs text-slate-500 bg-white border px-3 py-1.5 rounded-lg shadow-sm font-medium">Bulut Veritabanı Aktif</span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80">
@@ -517,7 +515,6 @@ def index():
         </main>
     </div>
 
-    <!-- MODAL: SATIŞ EKLE -->
     <div id="modal-add-sale" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg border">
             <h3 class="text-lg font-bold text-slate-800 mb-4">Yeni Satış Kaydı</h3>
@@ -560,7 +557,6 @@ def index():
         </div>
     </div>
 
-    <!-- MODAL: GÖRÜŞME EKLE -->
     <div id="modal-add-interaction" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg border">
             <h3 class="text-lg font-bold text-slate-800 mb-4">Yeni Görüşme Notu</h3>
@@ -794,11 +790,16 @@ def index():
                 quantity: parseInt(document.getElementById("sale-qty").value)
             };
 
-            await authFetch("/api/sales", {
+            const res = await authFetch("/api/sales", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
+
+            if (!res.ok) {
+                alert("Kayıt veritabanına eklenirken bir hata oluştu.");
+                return;
+            }
 
             toggleModal('modal-add-sale');
             document.getElementById("sale-form").reset();
@@ -883,7 +884,7 @@ def index():
     </script>
 </body>
 </html>
-    """
+"""
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
