@@ -169,9 +169,7 @@ def init_db():
             ("MY RAY", "HYPERION X5 - 3D", 38000.0, 1),
             ("MY RAY", "X6 PROXIMA - 2D", 14500.0, 25),
             ("MY RAY", "HYPERION X5 - 2D", 13500.0, 21),
-            ("MY RAY", "SEFALOMETRİ SENSÖR ve ATACHMAN", 8000.0, 4),
-            ("MY RAY", "XVS SENSÖR RVG SIZE 1", 2450.0, 10),
-            ("MY RAY", "XVS SENSÖR RVG SIZE 2", 2850.0, 2)
+            ("MY RAY", "SEFALOMETRİ SENSÖR ve ATACHMAN", 8000.0, 4)
             
         ]
         for item in seed_products:
