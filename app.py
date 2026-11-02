@@ -185,13 +185,15 @@ def init_db():
         notes TEXT
     )''', commit=True)
 
-    user = execute_query("SELECT id FROM users WHERE username = ?", ("admin",), fetch_one=True)
+    # Eski 'admin' kullanıcısını temizle ve yalnızca 'hakan' (şifre: 7659) kullanıcısını aktif et
+    execute_query("DELETE FROM users WHERE username != ?", ("hakan",), commit=True)
+    user = execute_query("SELECT id FROM users WHERE username = ?", ("hakan",), fetch_one=True)
     if not user:
         execute_query("INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)",
-                      ("admin", hash_password("admin123"), "Hakan Behramoğlu", "Admin"), commit=True)
+                      ("hakan", hash_password("7659"), "Hakan Behramoğlu", "Admin"), commit=True)
     else:
-        execute_query("UPDATE users SET password_hash = ? WHERE username = 'admin'",
-                      (hash_password("admin123"),), commit=True)
+        execute_query("UPDATE users SET password_hash = ?, full_name = ? WHERE username = 'hakan'",
+                      (hash_password("7659"), "Hakan Behramoğlu"), commit=True)
 
     staff_count = execute_query("SELECT COUNT(*) as count FROM staff", fetch_one=True)
     if staff_count and staff_count["count"] == 0:
@@ -258,7 +260,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if username is None:
+        if username != "hakan":
             raise HTTPException(status_code=401, detail="Geçersiz kimlik")
     except JWTError:
         raise HTTPException(status_code=401, detail="Oturum süresi doldu")
@@ -389,7 +391,7 @@ def index():
 <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-sans">
 
     <!-- LOGIN EKRANI -->
-    <div id="login-modal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div id="login-modal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-100">
             <div class="text-center mb-6">
                 <img src="/icon.svg" alt="Hakan Behramoğlu Logo" class="w-28 h-28 mx-auto mb-2 rounded-2xl shadow-sm border border-slate-100 object-contain">
@@ -397,14 +399,14 @@ def index():
                 <p class="text-xs font-semibold text-emerald-600 mt-0.5">● Order & Progress ●</p>
             </div>
             <div id="login-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl font-medium"></div>
-            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4" autocomplete="off">
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Kullanıcı Adı</label>
-                    <input type="text" id="username" value="admin" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
+                    <input type="text" id="username" placeholder="Kullanıcı adınızı girin" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Şifre</label>
-                    <input type="password" id="password" value="admin123" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
+                    <input type="password" id="password" placeholder="••••" required class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
                 </div>
                 <button type="submit" class="w-full bg-blue-600 active:bg-blue-800 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl text-sm shadow-lg shadow-blue-600/20 transition duration-200">
                     Sisteme Giriş Yap
@@ -810,10 +812,16 @@ def index():
         }
 
         async function initPortal() {
+            const res = await authFetch("/api/dashboard");
+            if (!res || !res.ok) {
+                logout();
+                return;
+            }
+            document.getElementById("login-modal").classList.add("hidden");
             document.getElementById("app").classList.remove("hidden");
             document.getElementById("mobile-header").classList.remove("hidden");
             document.getElementById("mobile-bottom-nav").classList.remove("hidden");
-            document.getElementById("user-display").textContent = localStorage.getItem("user_name") || "Yönetici";
+            document.getElementById("user-display").textContent = localStorage.getItem("user_name") || "Hakan Behramoğlu";
             await Promise.all([loadStaff(), loadProducts(), loadDashboard(), loadSales(), loadInteractions()]);
         }
 
