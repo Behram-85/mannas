@@ -3,7 +3,7 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Depends
-from fastapi.responses import HTMLResponse, Response, JSONResponse
+from fastapi.responses import HTMLResponse, Response, JSONResponse, FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from pydantic import BaseModel
@@ -27,67 +27,101 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 480
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crm_database.db")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
-app = FastAPI(title="Hakan Behramoğlu - CRM & Satış Takip Portalı")
+app = FastAPI(title="HB. DENTAL STUDIO - CRM & Satış Takip Portalı")
 
-# Yüklenen logonun yüksek çözünürlüklü vektörel (SVG) karşılığı
+# Yüklenen HB. DENTAL STUDIO görselinin vektörel (SVG) karşılığı
 LOGO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
-  <rect width="500" height="500" rx="90" fill="#ffffff"/>
-  <!-- Mavi Daire -->
-  <circle cx="232" cy="248" r="82" fill="#5482ff"/>
-  <!-- Yeşil Daire -->
-  <circle cx="261" cy="161" r="55" fill="#92d050"/>
-  <!-- Sarı Daire -->
-  <circle cx="303" cy="238" r="44" fill="#ffc000"/>
-  <!-- Bağlantı Çizgileri -->
-  <g stroke="#ffffff" stroke-width="5.5" stroke-linecap="round">
-    <line x1="244" y1="201" x2="244" y2="189"/>
-    <line x1="268" y1="215" x2="277" y2="210"/>
-    <line x1="218" y1="215" x2="207" y2="210"/>
-    <line x1="224" y1="242" x2="206" y2="262"/>
-    <line x1="243" y1="249" x2="241" y2="264"/>
-    <line x1="262" y1="242" x2="291" y2="271"/>
-  </g>
-  <!-- Merkez İnsan İkonu -->
-  <circle cx="243" cy="225" r="24" fill="#5482ff" stroke="#ffffff" stroke-width="5.5"/>
-  <circle cx="243" cy="218" r="7.5" fill="none" stroke="#ffffff" stroke-width="4.5"/>
-  <path d="M227 240 C227 230 259 230 259 240" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
-  <!-- Üst İnsan İkonu (Yeşil İçinde) -->
-  <circle cx="244" cy="175" r="14" fill="#92d050" stroke="#ffffff" stroke-width="4.5"/>
-  <circle cx="244" cy="171" r="4.5" fill="none" stroke="#ffffff" stroke-width="3.2"/>
-  <path d="M235 184 C235 178 253 178 253 184" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
-  <!-- Sağ Üst İnsan İkonu -->
-  <circle cx="289" cy="203" r="14" fill="#ffc000" stroke="#ffffff" stroke-width="4.5"/>
-  <circle cx="289" cy="199" r="4.5" fill="none" stroke="#ffffff" stroke-width="3.2"/>
-  <path d="M280 212 C280 206 298 206 298 212" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
-  <!-- Sol Alt İnsan İkonu -->
-  <circle cx="196" cy="272" r="14" fill="#5482ff" stroke="#ffffff" stroke-width="4.5"/>
-  <circle cx="196" cy="268" r="4.5" fill="none" stroke="#ffffff" stroke-width="3.2"/>
-  <path d="M187 281 C187 275 205 275 205 281" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
-  <!-- Küçük Düğüm Halkaları -->
-  <circle cx="199" cy="206" r="8" fill="#5482ff" stroke="#ffffff" stroke-width="4.5"/>
-  <circle cx="241" cy="273" r="8" fill="#5482ff" stroke="#ffffff" stroke-width="4.5"/>
-  <circle cx="296" cy="278" r="8" fill="#5482ff" stroke="#ffffff" stroke-width="4.5"/>
-  <!-- Alt Yazılar -->
-  <text x="250" y="362" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="800" fill="#111827" text-anchor="middle" letter-spacing="0.6">HAKAN BEHRAMOGLU</text>
-  <circle cx="188" cy="381" r="4.5" fill="#92d050"/>
-  <text x="250" y="385" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" fill="#374151" text-anchor="middle">Order &amp; Progress</text>
-  <circle cx="312" cy="381" r="4.5" fill="#92d050"/>
+  <defs>
+    <linearGradient id="suitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d47ff"/>
+      <stop offset="60%" stop-color="#002db3"/>
+      <stop offset="100%" stop-color="#001966"/>
+    </linearGradient>
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffdfc4"/>
+      <stop offset="70%" stop-color="#e5aa83"/>
+      <stop offset="100%" stop-color="#c6865c"/>
+    </linearGradient>
+    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c5032"/>
+      <stop offset="50%" stop-color="#52321b"/>
+      <stop offset="100%" stop-color="#2e1a0d"/>
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="-4" dy="4" stdDeviation="0" flood-color="#4b5563"/>
+    </filter>
+    <filter id="textShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="-2" dy="2.5" stdDeviation="0" flood-color="#374151"/>
+    </filter>
+  </defs>
+
+  <!-- Arka Plan -->
+  <rect width="500" height="500" rx="85" fill="#ffffff"/>
+
+  <!-- HB. Yazısı -->
+  <text x="72" y="182" font-family="Arial Black, Impact, sans-serif" font-size="68" font-weight="900" fill="#fca338" filter="url(#dropShadow)" letter-spacing="-1">HB.</text>
+
+  <!-- Mavi Ceket Gövde -->
+  <path d="M70 265 Q105 215 212 182 L338 250 L315 345 L358 435 L350 458 L70 458 Z" fill="url(#suitGrad)" stroke="#091e42" stroke-width="2.5" stroke-linejoin="round"/>
+  
+  <!-- Beyaz Tişört -->
+  <path d="M195 270 L248 292 L205 422 L162 415 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Ceket Yaka ve Katman Çizgileri -->
+  <path d="M160 220 L148 310 L175 305 L165 415" fill="none" stroke="#04154a" stroke-width="3" stroke-linecap="round"/>
+  <path d="M335 252 L222 390 L240 315 Z" fill="#06288c" stroke="#04154a" stroke-width="2"/>
+  <path d="M75 355 Q125 380 148 430" fill="none" stroke="#04154a" stroke-width="2.5"/>
+
+  <!-- Boyun ve Kafa (Eğik Поz) -->
+  <path d="M208 188 L225 275 Q245 310 275 292 L355 235 L335 135 Z" fill="url(#skinGrad)" stroke="#4a2810" stroke-width="2"/>
+
+  <!-- Sakal / Fade -->
+  <path d="M235 168 Q228 215 216 250 Q222 298 255 300 Q278 296 290 278 Q272 282 260 272 Q278 265 292 270 L282 258 Q258 254 248 270 Q235 255 245 215 Z" fill="#5c3a21" opacity="0.88"/>
+
+  <!-- Kulak -->
+  <path d="M236 135 Q214 138 215 175 Q218 198 235 190 Z" fill="url(#skinGrad)" stroke="#4a2810" stroke-width="2"/>
+  <path d="M226 150 Q221 165 227 178" fill="none" stroke="#854d27" stroke-width="2"/>
+
+  <!-- Güneş Gözlüğü -->
+  <line x1="242" y1="142" x2="274" y2="225" stroke="#1e293b" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="290" cy="242" rx="26" ry="20" transform="rotate(22 290 242)" fill="#262626" stroke="#1e293b" stroke-width="4"/>
+  <ellipse cx="342" cy="264" rx="22" ry="16" transform="rotate(20 342 264)" fill="#262626" stroke="#1e293b" stroke-width="4"/>
+  <path d="M314 248 Q322 246 325 253" fill="none" stroke="#1e293b" stroke-width="3.5"/>
+  <!-- Gözlük Parlaması -->
+  <line x1="276" y1="230" x2="295" y2="252" stroke="#ffffff" stroke-width="2.5" opacity="0.45" stroke-linecap="round"/>
+
+  <!-- Kaş ve Burun Detayı -->
+  <path d="M286 208 Q310 218 322 232" fill="none" stroke="#3b2210" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M308 252 L292 272 L278 266" fill="none" stroke="#6b3e20" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Saçlar (Spiky / Dağınık Stil) -->
+  <path d="M238 135 Q255 82 280 95 L275 78 L308 82 L305 68 L345 78 L342 66 L378 88 L398 78 L392 98 L422 96 L406 118 L438 128 L412 145 L442 162 L408 175 L425 192 L392 198 L405 218 L372 215 Q388 168 345 148 Q318 172 298 152 Q315 135 288 135 Q265 135 245 152 Z" fill="url(#hairGrad)" stroke="#261408" stroke-width="2" stroke-linejoin="round"/>
+
+  <!-- Ön Kol ve El -->
+  <path d="M110 458 Q115 430 160 432 L225 432 L252 458 Z" fill="url(#skinGrad)" stroke="#4a2810" stroke-width="2"/>
+
+  <!-- Alt Başlık: DENTAL STUDIO -->
+  <text x="212" y="492" font-family="Arial Black, Impact, sans-serif" font-size="33" font-weight="900" fill="#ff7b00" filter="url(#textShadow)" text-anchor="middle" letter-spacing="1">DENTAL STUDIO</text>
 </svg>'''
 
 @app.get("/icon.svg")
 def get_icon_svg():
+    # Eğer klasörde orijinal icon.png dosyası varsa onu da sunabilir, yoksa gömülü SVG döner
+    png_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.png")
+    if os.path.exists(png_path):
+        return FileResponse(png_path, media_type="image/png")
     return Response(content=LOGO_SVG, media_type="image/svg+xml")
 
 @app.get("/manifest.json")
 def get_manifest():
     return JSONResponse({
-        "name": "Hakan Behramoğlu CRM",
-        "short_name": "HB CRM",
-        "description": "Order & Progress - Dental Satış ve Stok Yönetim Portalı",
+        "name": "HB. Dental Studio CRM",
+        "short_name": "HB. Dental",
+        "description": "HB. Dental Studio - Satış ve Stok Yönetim Portalı",
         "start_url": "/",
         "display": "standalone",
         "background_color": "#ffffff",
-        "theme_color": "#0f172a",
+        "theme_color": "#0d47ff",
         "icons": [
             {
                 "src": "/icon.svg",
@@ -367,23 +401,23 @@ def index():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hakan Behramoğlu | Order & Progress CRM</title>
+    <title>HB. DENTAL STUDIO | CRM</title>
     
     <!-- PWA & Mobil İkon Tanımlamaları -->
-    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+    <link rel="icon" href="/icon.svg">
     <link rel="apple-touch-icon" href="/icon.svg">
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#0d47ff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="HB CRM">
+    <meta name="apple-mobile-web-app-title" content="HB. Dental">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .sidebar-active { background-color: #1e293b; border-left: 4px solid #3b82f6; color: #fff !important; }
-        .bottom-nav-active { color: #2563eb !important; font-weight: 700; }
+        .sidebar-active { background-color: #1e293b; border-left: 4px solid #ff7b00; color: #fff !important; }
+        .bottom-nav-active { color: #0d47ff !important; font-weight: 700; }
         body { -webkit-tap-highlight-color: transparent; }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
     </style>
@@ -394,9 +428,9 @@ def index():
     <div id="login-modal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-100">
             <div class="text-center mb-6">
-                <img src="/icon.svg" alt="Hakan Behramoğlu Logo" class="w-28 h-28 mx-auto mb-2 rounded-2xl shadow-sm border border-slate-100 object-contain">
-                <h2 class="text-xl font-extrabold tracking-tight text-slate-800">HAKAN BEHRAMOĞLU</h2>
-                <p class="text-xs font-semibold text-emerald-600 mt-0.5">● Order & Progress ●</p>
+                <img src="/icon.svg" alt="HB. Dental Studio Logo" class="w-32 h-32 mx-auto mb-2 rounded-2xl shadow-md border border-slate-100 object-contain bg-white p-1">
+                <h2 class="text-xl font-black tracking-tight text-slate-800">HB. <span class="text-orange-500">DENTAL STUDIO</span></h2>
+                <p class="text-xs font-semibold text-blue-600 mt-0.5">Satış & Stok Yönetim Sistemi</p>
             </div>
             <div id="login-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl font-medium"></div>
             <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4" autocomplete="off">
@@ -418,10 +452,10 @@ def index():
     <!-- MOBİL ÜST BAR (Sadece Mobil/Tablet) -->
     <header id="mobile-header" class="md:hidden sticky top-0 z-30 bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md hidden">
         <div class="flex items-center gap-2.5">
-            <img src="/icon.svg" alt="Logo" class="w-9 h-9 rounded-lg bg-white p-0.5">
+            <img src="/icon.svg" alt="Logo" class="w-10 h-10 rounded-xl bg-white p-0.5 object-contain">
             <div>
-                <div class="font-bold text-sm leading-tight tracking-tight">HAKAN BEHRAMOĞLU</div>
-                <div class="text-[10px] text-emerald-400 font-medium">● Order & Progress</div>
+                <div class="font-black text-sm leading-tight tracking-tight">HB. <span class="text-orange-400">DENTAL STUDIO</span></div>
+                <div class="text-[10px] text-blue-400 font-medium">Hakan Behramoğlu CRM</div>
             </div>
         </div>
         <button onclick="logout()" class="p-2 text-slate-300 hover:text-red-400 active:scale-95 transition" title="Çıkış Yap">
@@ -436,10 +470,10 @@ def index():
         <aside class="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-col justify-between flex-shrink-0">
             <div>
                 <div class="px-5 py-5 border-b border-slate-800 flex items-center gap-3">
-                    <img src="/icon.svg" alt="Logo" class="w-11 h-11 rounded-xl bg-white p-0.5 shrink-0">
+                    <img src="/icon.svg" alt="Logo" class="w-12 h-12 rounded-xl bg-white p-0.5 shrink-0 object-contain">
                     <div class="overflow-hidden">
-                        <div class="font-bold text-white text-sm leading-tight truncate">H. BEHRAMOĞLU</div>
-                        <div class="text-[11px] text-emerald-400 font-medium mt-0.5">● Order & Progress</div>
+                        <div class="font-black text-white text-sm leading-tight truncate">HB. <span class="text-orange-400">DENTAL</span></div>
+                        <div class="text-[11px] text-blue-400 font-semibold mt-0.5">STUDIO CRM</div>
                     </div>
                 </div>
                 <nav class="p-4 space-y-1.5 text-sm font-medium">
