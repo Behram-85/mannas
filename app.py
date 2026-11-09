@@ -216,7 +216,9 @@ def init_db():
         date TEXT,
         customer_name TEXT,
         devices TEXT,
-        notes TEXT
+        notes TEXT,
+        "YETKİLİ PERSONEL" TEXT,
+        "TEKLİF URL'si" TEXT
     )''', commit=True)
 
     # Eski 'admin' kullanıcısını temizle ve yalnızca 'hakan' (şifre: 7659) kullanıcısını aktif et
@@ -319,6 +321,8 @@ class InteractionCreate(BaseModel):
     customer_name: str
     devices: str
     notes: str
+    staff_name: Optional[str] = "HAKAN BEHRAMOĞLU"
+    offer_url: Optional[str] = ""
 
 @app.post("/api/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -389,8 +393,11 @@ def get_interactions(_: str = Depends(get_current_user)):
 
 @app.post("/api/interactions")
 def add_interaction(item: InteractionCreate, _: str = Depends(get_current_user)):
-    execute_query("INSERT INTO interactions (date, customer_name, devices, notes) VALUES (?, ?, ?, ?)",
-                  (item.date, item.customer_name, item.devices, item.notes), commit=True)
+    execute_query(
+        'INSERT INTO interactions (date, customer_name, devices, notes, "YETKİLİ PERSONEL", "TEKLİF URL\'si") VALUES (?, ?, ?, ?, ?, ?)',
+        (item.date, item.customer_name, item.devices, item.notes, item.staff_name, item.offer_url or None),
+        commit=True
+    )
     return {"status": "ok"}
 
 @app.get("/", response_class=HTMLResponse)
@@ -657,6 +664,8 @@ def index():
                                 <th class="p-4">Müşteri Adı</th>
                                 <th class="p-4">İlgilenilen Cihazlar</th>
                                 <th class="p-4">Notlar</th>
+                                <th class="p-4">Yetkili Personel</th>
+                                <th class="p-4 text-center">Teklif</th>
                             </tr>
                         </thead>
                         <tbody id="interactions-table-body" class="divide-y divide-slate-100 font-medium text-slate-700"></tbody>
@@ -777,6 +786,14 @@ def index():
                 <div>
                     <label class="font-semibold text-slate-600">Görüşülen Cihazlar</label>
                     <input type="text" id="inter-devices" required class="w-full p-2.5 border rounded-xl mt-1 text-sm" placeholder="Örn: S300, Hyperion X5">
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-600">Yetkili Personel</label>
+                    <select id="inter-staff" class="w-full p-2.5 border rounded-xl mt-1 text-sm bg-slate-50"></select>
+                </div>
+                <div>
+                    <label class="font-semibold text-slate-600">Teklif URL'si (İsteğe Bağlı)</label>
+                    <input type="url" id="inter-url" class="w-full p-2.5 border rounded-xl mt-1 text-sm" placeholder="https://1drv.ms/...">
                 </div>
                 <div>
                     <label class="font-semibold text-slate-600">Açıklama / Detaylar</label>
@@ -1105,7 +1122,9 @@ def index():
             mlist.innerHTML = "";
             
             const select = document.getElementById("sale-staff");
+            const interSelect = document.getElementById("inter-staff");
             select.innerHTML = "";
+            if (interSelect) interSelect.innerHTML = "";
 
             rawStaff.forEach(s => {
                 const tr = document.createElement("tr");
@@ -1133,6 +1152,14 @@ def index():
                 opt.value = s.name;
                 opt.textContent = s.name;
                 select.appendChild(opt);
+
+                if (interSelect) {
+                    const opt2 = document.createElement("option");
+                    opt2.value = s.name;
+                    opt2.textContent = s.name;
+                    if (s.name === "HAKAN BEHRAMOĞLU") opt2.selected = true;
+                    interSelect.appendChild(opt2);
+                }
             });
             document.getElementById("kpi-staff").textContent = rawStaff.length;
         }
@@ -1146,29 +1173,52 @@ def index():
             mlist.innerHTML = "";
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">Kayıtlı görüşme bulunmamaktadır.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Kayıtlı görüşme bulunmamaktadır.</td></tr>`;
                 mlist.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-xs text-slate-400 border">Henüz görüşme kaydı girilmemiş.</div>`;
                 return;
             }
             data.forEach(i => {
+                const staffName = i["YETKİLİ PERSONEL"] || i.staff_name || "-";
+                const offerUrl = i["TEKLİF URL'si"] || i.offer_url || "";
+                const hasValidUrl = offerUrl && offerUrl !== "NULL" && offerUrl.trim() !== "";
+
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
-                    <td class="p-4 text-slate-500">${i.date}</td>
+                    <td class="p-4 text-slate-500 whitespace-nowrap">${i.date}</td>
                     <td class="p-4 font-bold text-slate-800">${i.customer_name}</td>
                     <td class="p-4 font-medium text-purple-700">${i.devices}</td>
                     <td class="p-4 text-slate-600">${i.notes}</td>
+                    <td class="p-4 whitespace-nowrap">
+                        <span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg text-[11px] font-semibold">${staffName}</span>
+                    </td>
+                    <td class="p-4 text-center whitespace-nowrap">
+                        ${hasValidUrl 
+                            ? `<a href="${offerUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-xl text-[11px] font-bold transition shadow-2xs">
+                                <i class="fa-solid fa-file-Lines"></i> Teklifi Aç <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                               </a>` 
+                            : '<span class="text-slate-300 text-[11px]">-</span>'}
+                    </td>
                 `;
                 tbody.appendChild(tr);
 
                 const card = document.createElement("div");
-                card.className = "bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80 space-y-1.5";
+                card.className = "bg-white p-4 rounded-2xl shadow-xs border border-slate-200/80 space-y-2";
                 card.innerHTML = `
                     <div class="flex items-center justify-between">
                         <span class="font-bold text-slate-800 text-sm">${i.customer_name}</span>
                         <span class="text-[11px] text-slate-400">${i.date}</span>
                     </div>
-                    <div class="text-xs font-semibold text-purple-600"><i class="fa-solid fa-tooth mr-1"></i> ${i.devices}</div>
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="text-xs font-semibold text-purple-600"><i class="fa-solid fa-tooth mr-1"></i> ${i.devices}</div>
+                        <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold">${staffName}</span>
+                    </div>
                     <p class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl">${i.notes}</p>
+                    ${hasValidUrl ? `
+                    <div class="pt-1">
+                        <a href="${offerUrl}" target="_blank" rel="noopener noreferrer" class="w-full flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 py-2 rounded-xl text-xs font-bold">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> Teklif Dosyasını Görüntüle
+                        </a>
+                    </div>` : ''}
                 `;
                 mlist.appendChild(card);
             });
@@ -1180,7 +1230,9 @@ def index():
                 date: document.getElementById("inter-date").value,
                 customer_name: document.getElementById("inter-customer").value,
                 devices: document.getElementById("inter-devices").value,
-                notes: document.getElementById("inter-notes").value
+                notes: document.getElementById("inter-notes").value,
+                staff_name: document.getElementById("inter-staff").value,
+                offer_url: document.getElementById("inter-url").value
             };
 
             await authFetch("/api/interactions", {
