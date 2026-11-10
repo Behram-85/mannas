@@ -29,85 +29,122 @@ DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crm_database
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 app = FastAPI(title="HB. DENTAL STUDIO - CRM & Satış Takip Portalı")
 
-# Yüklenen HB. DENTAL STUDIO görselinin vektörel (SVG) karşılığı
-LOGO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+# Yüklenen 3D İzometrik Dental Küp (Ünit, 3D Röntgen, Hava Sterilizasyon) Vektörel Karşılığı
+LOGO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
   <defs>
-    <linearGradient id="suitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0d47ff"/>
-      <stop offset="60%" stop-color="#002db3"/>
-      <stop offset="100%" stop-color="#001966"/>
+    <linearGradient id="topFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60b5ff"/>
+      <stop offset="100%" stop-color="#2b82d9"/>
     </linearGradient>
-    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffdfc4"/>
-      <stop offset="70%" stop-color="#e5aa83"/>
-      <stop offset="100%" stop-color="#c6865c"/>
+    <linearGradient id="leftFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2687a5"/>
+      <stop offset="100%" stop-color="#0e4f68"/>
     </linearGradient>
-    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#7c5032"/>
-      <stop offset="50%" stop-color="#52321b"/>
-      <stop offset="100%" stop-color="#2e1a0d"/>
+    <linearGradient id="rightFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#153969"/>
+      <stop offset="100%" stop-color="#091d3e"/>
     </linearGradient>
-    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="-4" dy="4" stdDeviation="0" flood-color="#4b5563"/>
-    </filter>
-    <filter id="textShadow" x="-10%" y="-10%" width="130%" height="130%">
-      <feDropShadow dx="-2" dy="2.5" stdDeviation="0" flood-color="#374151"/>
+    <linearGradient id="chairBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2575fc"/>
+      <stop offset="100%" stop-color="#0b3d91"/>
+    </linearGradient>
+    <linearGradient id="beamGrad" x1="100%" y1="0%" x2="0%" y2="50%">
+      <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#0072ff" stop-opacity="0.12"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
 
-  <!-- Arka Plan -->
-  <rect width="500" height="500" rx="85" fill="#ffffff"/>
+  <!-- Siyah Arka Plan -->
+  <rect width="600" height="600" rx="100" fill="#000000"/>
 
-  <!-- HB. Yazısı -->
-  <text x="72" y="182" font-family="Arial Black, Impact, sans-serif" font-size="68" font-weight="900" fill="#fca338" filter="url(#dropShadow)" letter-spacing="-1">HB.</text>
+  <!-- İZOMETRİK KÜP YÜZEYLERİ -->
+  <!-- Üst Yüzey -->
+  <polygon points="300,85 515,205 300,325 85,205" fill="url(#topFace)"/>
+  <!-- Sol Yüzey -->
+  <polygon points="85,205 300,325 300,560 85,440" fill="url(#leftFace)"/>
+  <!-- Sağ Yüzey -->
+  <polygon points="300,325 515,205 515,440 300,560" fill="url(#rightFace)"/>
+  <!-- Küp Kenar Çizgisi -->
+  <polyline points="85,205 300,325 515,205" fill="none" stroke="#85d7ff" stroke-width="1.5" opacity="0.5"/>
+  <line x1="300" y1="325" x2="300" y2="560" stroke="#38bdf8" stroke-width="1.5" opacity="0.4"/>
 
-  <!-- Mavi Ceket Gövde -->
-  <path d="M70 265 Q105 215 212 182 L338 250 L315 345 L358 435 L350 458 L70 458 Z" fill="url(#suitGrad)" stroke="#091e42" stroke-width="2.5" stroke-linejoin="round"/>
-  
-  <!-- Beyaz Tişört -->
-  <path d="M195 270 L248 292 L205 422 L162 415 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <!-- SOL YÜZEY: HAVA STERİLİZASYON CİHAZI & HAVA AKIŞI -->
+  <!-- Cihaz Gövdesi -->
+  <polygon points="105,260 145,282 145,442 105,420" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1"/>
+  <polygon points="145,282 162,272 162,432 145,442" fill="#cbd5e1"/>
+  <polygon points="105,260 122,250 162,272 145,282" fill="#f8fafc"/>
+  <!-- Izgara -->
+  <polygon points="147,295 159,288 159,395 147,402" fill="#1e293b"/>
+  <!-- Parlayan Mavi Hava Dalgaları -->
+  <g filter="url(#glow)" fill="none" stroke="#38bdf8" stroke-linecap="round">
+    <path d="M158,305 C195,295 215,345 255,335 C275,330 285,345 292,350" stroke-width="4" opacity="0.85"/>
+    <path d="M158,330 C195,320 215,375 255,365 C275,360 285,375 292,380" stroke-width="5" stroke="#7dd3fc" opacity="0.95"/>
+    <path d="M158,355 C195,345 215,405 255,395 C275,390 285,405 292,410" stroke-width="4" opacity="0.85"/>
+    <path d="M158,380 C195,370 215,435 255,425 C275,420 285,435 292,440" stroke-width="3.5" opacity="0.75"/>
+  </g>
+  <!-- Partiküller -->
+  <g fill="#bae6fd" filter="url(#glow)">
+    <circle cx="195" cy="325" r="2.5"/><circle cx="225" cy="355" r="3"/><circle cx="260" cy="348" r="2"/>
+    <circle cx="210" cy="385" r="2.5"/><circle cx="245" cy="398" r="3"/><circle cx="275" cy="415" r="2.5"/>
+    <circle cx="185" cy="365" r="2"/><circle cx="235" cy="430" r="2.5"/><circle cx="270" cy="380" r="3"/>
+  </g>
 
-  <!-- Ceket Yaka ve Katman Çizgileri -->
-  <path d="M160 220 L148 310 L175 305 L165 415" fill="none" stroke="#04154a" stroke-width="3" stroke-linecap="round"/>
-  <path d="M335 252 L222 390 L240 315 Z" fill="#06288c" stroke="#04154a" stroke-width="2"/>
-  <path d="M75 355 Q125 380 148 430" fill="none" stroke="#04154a" stroke-width="2.5"/>
+  <!-- SAĞ YÜZEY: 3D PANORAMİK RÖNTGEN (CBCT) & KAFATASI HOLOGRAMI -->
+  <!-- Cihaz Sütunu ve Kolu -->
+  <polygon points="465,240 495,255 495,465 465,450" fill="#cbd5e1"/>
+  <polygon points="445,250 465,240 465,450 445,460" fill="#e2e8f0"/>
+  <path d="M405,260 L465,225 L495,240 L495,345 L470,360 L470,285 L430,305 L430,360 L405,345 Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="1"/>
+  <!-- Hologram Işın Konisi -->
+  <polygon points="455,345 320,375 320,485 365,510" fill="url(#beamGrad)"/>
+  <!-- Hologram 3D Çerçeve -->
+  <polygon points="320,375 365,400 365,510 320,485" fill="none" stroke="#38bdf8" stroke-width="2" filter="url(#glow)"/>
+  <polygon points="335,365 380,390 380,500 335,475" fill="none" stroke="#00f2fe" stroke-width="1" opacity="0.6"/>
+  <!-- Röntgen Çene / Kafatası Silüeti -->
+  <g fill="none" stroke="#bae6fd" stroke-width="2" filter="url(#glow)" opacity="0.9">
+    <path d="M332,405 Q348,392 360,410 Q365,430 355,445 L355,468 Q342,478 332,462 Z" fill="#0284c7" fill-opacity="0.35"/>
+    <!-- Diş Sırası -->
+    <path d="M334,445 Q344,452 354,446" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="3,2"/>
+    <path d="M335,452 Q344,459 353,453" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="3,2"/>
+  </g>
 
-  <!-- Boyun ve Kafa (Eğik Поz) -->
-  <path d="M208 188 L225 275 Q245 310 275 292 L355 235 L335 135 Z" fill="url(#skinGrad)" stroke="#4a2810" stroke-width="2"/>
-
-  <!-- Sakal / Fade -->
-  <path d="M235 168 Q228 215 216 250 Q222 298 255 300 Q278 296 290 278 Q272 282 260 272 Q278 265 292 270 L282 258 Q258 254 248 270 Q235 255 245 215 Z" fill="#5c3a21" opacity="0.88"/>
-
-  <!-- Kulak -->
-  <path d="M236 135 Q214 138 215 175 Q218 198 235 190 Z" fill="url(#skinGrad)" stroke="#4a2810" stroke-width="2"/>
-  <path d="M226 150 Q221 165 227 178" fill="none" stroke="#854d27" stroke-width="2"/>
-
-  <!-- Güneş Gözlüğü -->
-  <line x1="242" y1="142" x2="274" y2="225" stroke="#1e293b" stroke-width="4" stroke-linecap="round"/>
-  <ellipse cx="290" cy="242" rx="26" ry="20" transform="rotate(22 290 242)" fill="#262626" stroke="#1e293b" stroke-width="4"/>
-  <ellipse cx="342" cy="264" rx="22" ry="16" transform="rotate(20 342 264)" fill="#262626" stroke="#1e293b" stroke-width="4"/>
-  <path d="M314 248 Q322 246 325 253" fill="none" stroke="#1e293b" stroke-width="3.5"/>
-  <!-- Gözlük Parlaması -->
-  <line x1="276" y1="230" x2="295" y2="252" stroke="#ffffff" stroke-width="2.5" opacity="0.45" stroke-linecap="round"/>
-
-  <!-- Kaş ve Burun Detayı -->
-  <path d="M286 208 Q310 218 322 232" fill="none" stroke="#3b2210" stroke-width="4.5" stroke-linecap="round"/>
-  <path d="M308 252 L292 272 L278 266" fill="none" stroke="#6b3e20" stroke-width="2.5" stroke-linecap="round"/>
-
-  <!-- Saçlar (Spiky / Dağınık Stil) -->
-  <path d="M238 135 Q255 82 280 95 L275 78 L308 82 L305 68 L345 78 L342 66 L378 88 L398 78 L392 98 L422 96 L406 118 L438 128 L412 145 L442 162 L408 175 L425 192 L392 198 L405 218 L372 215 Q388 168 345 148 Q318 172 298 152 Q315 135 288 135 Q265 135 245 152 Z" fill="url(#hairGrad)" stroke="#261408" stroke-width="2" stroke-linejoin="round"/>
-
-  <!-- Ön Kol ve El -->
-  <path d="M110 458 Q115 430 160 432 L225 432 L252 458 Z" fill="url(#skinGrad)" stroke="#4a2810" stroke-width="2"/>
-
-  <!-- Alt Başlık: DENTAL STUDIO -->
-  <text x="212" y="492" font-family="Arial Black, Impact, sans-serif" font-size="33" font-weight="900" fill="#ff7b00" filter="url(#textShadow)" text-anchor="middle" letter-spacing="1">DENTAL STUDIO</text>
+  <!-- ÜST YÜZEY: MAVİ DENTAL ÜNİT KOLTUĞU -->
+  <!-- Ünit Tabanı -->
+  <polygon points="225,205 295,175 345,205 275,238" fill="#475569"/>
+  <polygon points="240,198 295,175 335,198 280,222" fill="#f1f5f9"/>
+  <path d="M250,195 L285,160 L325,180 L315,215 L265,220 Z" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1"/>
+  <!-- Kreşuar & Su Ünitesi -->
+  <ellipse cx="295" cy="128" rx="18" ry="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <!-- Mavi Koltuk Sırtlığı ve Oturma Yeri -->
+  <path d="M215,105 Q205,135 230,158 L268,142 Q255,112 235,98 Z" fill="url(#chairBlue)" stroke="#1e3a8a" stroke-width="1.5"/>
+  <!-- Tetiyer (Başlık) -->
+  <ellipse cx="222" cy="82" rx="14" ry="9" transform="rotate(-15 222 82)" fill="url(#chairBlue)"/>
+  <!-- Koltuk Minderi ve Ayak Kısmı -->
+  <path d="M235,158 L295,138 L345,168 L362,202 L322,215 L292,175 L245,175 Z" fill="url(#chairBlue)" stroke="#1e3a8a" stroke-width="1.5"/>
+  <!-- Doktor Tableti ve Kamçı Kollar -->
+  <polygon points="325,125 375,142 362,160 312,142" fill="#f8fafc" stroke="#94a3b8" stroke-width="1"/>
+  <path d="M330,152 Q332,205 342,205 M342,155 Q345,210 355,208 M354,158 Q358,212 368,210" fill="none" stroke="#64748b" stroke-width="2"/>
+  <!-- Monitör Ekranı -->
+  <polygon points="365,78 408,92 396,128 355,114" fill="#f8fafc" stroke="#475569" stroke-width="2"/>
+  <polygon points="369,83 403,95 393,123 360,111" fill="#0f172a"/>
+  <circle cx="381" cy="103" r="9" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+  <!-- Reflektör (Üst Işık Kolu) -->
+  <polyline points="335,128 345,52 295,35" fill="none" stroke="#e2e8f0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse cx="292" cy="42" rx="18" ry="11" fill="#e2e8f0" stroke="#64748b" stroke-width="1.5"/>
+  <ellipse cx="292" cy="44" rx="13" ry="7" fill="#bae6fd" filter="url(#glow)"/>
 </svg>'''
 
 @app.get("/icon.svg")
 def get_icon_svg():
-    # Eğer klasörde orijinal icon.png dosyası varsa onu da sunabilir, yoksa gömülü SVG döner
-    png_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.png")
+    # Klasörde icon.jpg veya icon.png varsa doğrudan orijinal resmi sunar, yoksa gömülü 3D SVG'yi döner
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    jpg_path = os.path.join(base_dir, "icon.jpg")
+    png_path = os.path.join(base_dir, "icon.png")
+    if os.path.exists(jpg_path):
+        return FileResponse(jpg_path, media_type="image/jpeg")
     if os.path.exists(png_path):
         return FileResponse(png_path, media_type="image/png")
     return Response(content=LOGO_SVG, media_type="image/svg+xml")
@@ -435,7 +472,7 @@ def index():
     <div id="login-modal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-100">
             <div class="text-center mb-6">
-                <img src="/icon.svg" alt="HB. Dental Studio Logo" class="w-32 h-32 mx-auto mb-2 rounded-2xl shadow-md border border-slate-100 object-contain bg-white p-1">
+                <img src="/icon.svg" alt="HB. Dental Studio Logo" class="w-32 h-32 mx-auto mb-3 rounded-3xl shadow-lg border border-slate-800 object-cover bg-black">
                 <h2 class="text-xl font-black tracking-tight text-slate-800">HB. <span class="text-orange-500">DENTAL STUDIO</span></h2>
                 <p class="text-xs font-semibold text-blue-600 mt-0.5">Satış & Stok Yönetim Sistemi</p>
             </div>
@@ -459,7 +496,7 @@ def index():
     <!-- MOBİL ÜST BAR (Sadece Mobil/Tablet) -->
     <header id="mobile-header" class="md:hidden sticky top-0 z-30 bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md hidden">
         <div class="flex items-center gap-2.5">
-            <img src="/icon.svg" alt="Logo" class="w-10 h-10 rounded-xl bg-white p-0.5 object-contain">
+            <img src="/icon.svg" alt="Logo" class="w-10 h-10 rounded-xl bg-black border border-slate-700 object-cover">
             <div>
                 <div class="font-black text-sm leading-tight tracking-tight">HB. <span class="text-orange-400">DENTAL STUDIO</span></div>
                 <div class="text-[10px] text-blue-400 font-medium">Hakan Behramoğlu CRM</div>
@@ -477,7 +514,7 @@ def index():
         <aside class="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-col justify-between flex-shrink-0">
             <div>
                 <div class="px-5 py-5 border-b border-slate-800 flex items-center gap-3">
-                    <img src="/icon.svg" alt="Logo" class="w-12 h-12 rounded-xl bg-white p-0.5 shrink-0 object-contain">
+                    <img src="/icon.svg" alt="Logo" class="w-12 h-12 rounded-xl bg-black border border-slate-700 shrink-0 object-cover">
                     <div class="overflow-hidden">
                         <div class="font-black text-white text-sm leading-tight truncate">HB. <span class="text-orange-400">DENTAL</span></div>
                         <div class="text-[11px] text-blue-400 font-semibold mt-0.5">STUDIO CRM</div>
