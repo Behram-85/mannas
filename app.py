@@ -27,7 +27,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 480
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crm_database.db")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
-app = FastAPI(title="HB. DENTAL STUDIO - CRM & Satış Takip Portalı")
+app = FastAPI(title="Klinik Matrix - CRM & Satış Takip Portalı")
 
 # Yüklenen 3D İzometrik Dental Küp (Ünit, 3D Röntgen, Hava Sterilizasyon) Vektörel Karşılığı
 LOGO_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
@@ -152,9 +152,9 @@ def get_icon_svg():
 @app.get("/manifest.json")
 def get_manifest():
     return JSONResponse({
-        "name": "HB. Dental Studio CRM",
-        "short_name": "HB. Dental",
-        "description": "HB. Dental Studio - Satış ve Stok Yönetim Portalı",
+        "name": "Klinik Matrix CRM",
+        "short_name": "Klinik Matrix",
+        "description": "Klinik Matrix - Satış ve Stok Yönetim Portalı",
         "start_url": "/",
         "display": "standalone",
         "background_color": "#ffffff",
@@ -445,7 +445,7 @@ def index():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HB. DENTAL STUDIO | CRM</title>
+    <title>Klinik Matrix | CRM</title>
     
     <!-- PWA & Mobil İkon Tanımlamaları -->
     <link rel="icon" href="/icon.svg">
@@ -454,7 +454,7 @@ def index():
     <meta name="theme-color" content="#0d47ff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="HB. Dental">
+    <meta name="apple-mobile-web-app-title" content="Klinik Matrix">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -472,8 +472,8 @@ def index():
     <div id="login-modal" class="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-100">
             <div class="text-center mb-6">
-                <img src="/icon.svg" alt="HB. Dental Studio Logo" class="w-32 h-32 mx-auto mb-3 rounded-3xl shadow-lg border border-slate-800 object-cover bg-black">
-                <h2 class="text-xl font-black tracking-tight text-slate-800">HB. <span class="text-orange-500">DENTAL STUDIO</span></h2>
+                <img src="/icon.svg" alt="Klinik Matrix Logo" class="w-32 h-32 mx-auto mb-3 rounded-3xl shadow-lg border border-slate-800 object-cover bg-black">
+                <h2 class="text-xl font-black tracking-tight text-slate-800">Klinik <span class="text-orange-500">Matrix</span></h2>
                 <p class="text-xs font-semibold text-blue-600 mt-0.5">Satış & Stok Yönetim Sistemi</p>
             </div>
             <div id="login-error" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl font-medium"></div>
@@ -498,8 +498,8 @@ def index():
         <div class="flex items-center gap-2.5">
             <img src="/icon.svg" alt="Logo" class="w-10 h-10 rounded-xl bg-black border border-slate-700 object-cover">
             <div>
-                <div class="font-black text-sm leading-tight tracking-tight">HB. <span class="text-orange-400">DENTAL STUDIO</span></div>
-                <div class="text-[10px] text-blue-400 font-medium">Hakan Behramoğlu CRM</div>
+                <div class="font-black text-sm leading-tight tracking-tight">Klinik <span class="text-orange-400">Matrix</span></div>
+                <div class="text-[10px] text-blue-400 font-medium">CRM Yönetim Sistemi</div>
             </div>
         </div>
         <button onclick="logout()" class="p-2 text-slate-300 hover:text-red-400 active:scale-95 transition" title="Çıkış Yap">
@@ -516,8 +516,8 @@ def index():
                 <div class="px-5 py-5 border-b border-slate-800 flex items-center gap-3">
                     <img src="/icon.svg" alt="Logo" class="w-12 h-12 rounded-xl bg-black border border-slate-700 shrink-0 object-cover">
                     <div class="overflow-hidden">
-                        <div class="font-black text-white text-sm leading-tight truncate">HB. <span class="text-orange-400">DENTAL</span></div>
-                        <div class="text-[11px] text-blue-400 font-semibold mt-0.5">STUDIO CRM</div>
+                        <div class="font-black text-white text-sm leading-tight truncate">Klinik <span class="text-orange-400">Matrix</span></div>
+                        <div class="text-[11px] text-blue-400 font-semibold mt-0.5">CRM PORTALI</div>
                     </div>
                 </div>
                 <nav class="p-4 space-y-1.5 text-sm font-medium">
