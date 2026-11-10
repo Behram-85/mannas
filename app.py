@@ -14,8 +14,16 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 IS_POSTGRES = DATABASE_URL is not None and DATABASE_URL.startswith("postgres")
 
 if IS_POSTGRES:
-    import psycopg2
-    from psycopg2.extras import RealDictCursor
+    try:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+    except ImportError:
+        import subprocess
+        import sys
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "psycopg2-binary"])
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 else:
