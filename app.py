@@ -1395,7 +1395,7 @@ def konfigurator_page():
                 <p class="text-[11px] text-gray-400 pt-1">Devam etmek için 4 haneli PIN kodunu girin.</p>
             </div>
             <div class="flex justify-center gap-3 py-2">
-                <input type="password" id="pin-input" maxlength="4" placeholder="••••" oninput="handlePinTyping(this.value)" class="w-44 text-center font-mono text-3xl tracking-[0.5em] bg-gray-900/90 border border-white/15 focus:border-sky-400 rounded-2xl py-3 text-white focus:outline-none shadow-inner">
+                <input type="password" id="pin-input" maxlength="4" inputmode="numeric" placeholder="••••" oninput="handlePinTyping(this.value)" onkeydown="if(event.key==='Enter') verifyPinCode()" class="w-44 text-center font-mono text-3xl tracking-[0.5em] bg-gray-900/90 border border-white/15 focus:border-sky-400 rounded-2xl py-3 text-white focus:outline-none shadow-inner">
             </div>
             <div id="pin-error-msg" class="hidden text-xs font-semibold text-rose-400">
                 <i class="ph-fill ph-warning-circle"></i> Hatalı PIN kodu! Lütfen tekrar deneyin.
@@ -1623,9 +1623,6 @@ def konfigurator_page():
                         </button>
                     </div>
 
-                    <!-- Tam 19 Renk Kartelası + Standard / Memory Foam -->
-                    <div class="space-y-2">
-                        <div class="flex flex-wrap justify-between items-center gap-1 text-xs">
                     <!-- Tam Renk Kartelası (Marka ve Modele Göre Dinamik) -->
                     <div class="space-y-2">
                         <div class="flex flex-wrap justify-between items-center gap-1 text-xs">
@@ -2805,6 +2802,36 @@ def konfigurator_page():
             const currTag = curr === '$' ? ' (USD $)' : '';
             addItemToProposal('ÜNİTE', `${data.name.toUpperCase()} ${appState.armType.toUpperCase()} (İZDO 33. Kongre - ${uphTag}${appState.colorName})${currTag}`, qty, data.basePrice);
             appState.currentUnitSheetItems.forEach(it => {
+                const isPaid = (it.price || 0) > 0;
+                const statusTag = it.status ? `[${it.status}] ` : '';
+                addItemToProposal(it.cat, `  ↳ ${statusTag}${it.desc}`, qty, isPaid ? it.price : 0);
+            });
+            showToast("Tüm konfigürasyon satırları detaylı teklif tablosuna aktarıldı!");
+            switchTab('proposal');
+        }
+
+        function setArmType(type) {
+            const whipGroup = document.getElementById('svg-whip-arms');
+            const btnCont = document.getElementById('arm-continental');
+            const btnIntl = document.getElementById('arm-international');
+            const badge = document.getElementById('unit-badge-delivery');
+            const data = UNIT_CATALOG[appState.selectedModelKey];
+
+            if (type === 'continental') {
+                if (whipGroup) whipGroup.style.display = 'block';
+                appState.armType = 'Kamçılı (Continental)';
+                btnCont.className = 'py-2 px-3 rounded-xl border border-sky-500 bg-sky-500/15 text-xs font-semibold text-white flex items-center justify-center gap-1.5';
+                btnIntl.className = 'py-2 px-3 rounded-xl border border-white/10 bg-gray-900/60 text-xs font-medium text-gray-300 flex items-center justify-center gap-1.5';
+            } else {
+                if (whipGroup) whipGroup.style.display = 'none';
+                appState.armType = 'Askılı (International)';
+                btnIntl.className = 'py-2 px-3 rounded-xl border border-sky-500 bg-sky-500/15 text-xs font-semibold text-white flex items-center justify-center gap-1.5';
+                btnCont.className = 'py-2 px-3 rounded-xl border border-white/10 bg-gray-900/60 text-xs font-medium text-gray-300 flex items-center justify-center gap-1.5';
+            }
+            if (badge) badge.textContent = appState.armType;
+            document.getElementById('unit-title-display').textContent = data.name + ' ' + appState.armType.split(' ')[0];
+        }
+
         function renderUpholsteryTabs() {
             const tabsBox = document.getElementById('upholstery-type-tabs');
             if (!tabsBox) return;
