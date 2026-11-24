@@ -1626,10 +1626,10 @@ def konfigurator_page():
                     <!-- Tam 19 Renk Kartelası + Standard / Memory Foam -->
                     <div class="space-y-2">
                         <div class="flex flex-wrap justify-between items-center gap-1 text-xs">
-                            <div class="flex items-center gap-1 bg-gray-900 p-0.5 rounded-lg border border-white/10">
-                                <button type="button" onclick="setUpholsteryType('standard')" id="uph-std-btn" class="px-2 py-0.5 rounded-md bg-sky-500 text-white font-bold text-[10px]">Standard (19)</button>
-                                <button type="button" onclick="setUpholsteryType('memory')" id="uph-mem-btn" class="px-2 py-0.5 rounded-md text-gray-400 hover:text-white font-bold text-[10px]">Memory Foam (19)</button>
-                            </div>
+                    <!-- Tam Renk Kartelası (Marka ve Modele Göre Dinamik) -->
+                    <div class="space-y-2">
+                        <div class="flex flex-wrap justify-between items-center gap-1 text-xs">
+                            <div id="upholstery-type-tabs" class="flex items-center gap-1 bg-gray-900 p-0.5 rounded-lg border border-white/10"></div>
                             <span id="selected-color-label" class="font-semibold text-sky-400 text-[11px]">102 Atlantic Blue</span>
                         </div>
                         <div id="upholstery-swatches-container" class="grid grid-cols-5 gap-1.5 max-h-48 overflow-y-auto pr-1"></div>
@@ -1835,6 +1835,28 @@ def konfigurator_page():
                             </button>
                         </div>
                     </div>
+                </div>
+
+                <!-- PAKETSİZ TEKİL GÖRÜNTÜLEME CİHAZLARI KATALOĞU -->
+                <div class="pt-6 border-t border-white/10 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <span class="text-[11px] font-mono uppercase tracking-widest text-sky-400 font-bold">PAKETSİZ TEKİL CİHAZ SEÇİMİ</span>
+                            <h3 class="font-display text-xl font-bold text-white">MyRay, Dabi Atlante & Woodpecker Tekil Ürün Listesi</h3>
+                            <p class="text-xs text-gray-400">Kampanya paketi olmadan dilediğiniz cihazı, sensörü veya ataçmanı tek tek teklife ekleyin.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <div class="flex items-center gap-1 bg-gray-900 p-1 rounded-xl border border-white/10 text-xs">
+                                <button onclick="filterSingleImaging('ALL')" id="img-flt-ALL" class="px-3 py-1.5 rounded-lg bg-sky-500 text-white font-bold">Tümü</button>
+                                <button onclick="filterSingleImaging('MYRAY')" id="img-flt-MYRAY" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white font-semibold">MyRay</button>
+                                <button onclick="filterSingleImaging('DABI')" id="img-flt-DABI" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white font-semibold">Dabi Atlante</button>
+                                <button onclick="filterSingleImaging('WOODPECKER')" id="img-flt-WOODPECKER" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white font-semibold">Woodpecker</button>
+                            </div>
+                            <input type="text" id="single-imaging-search" oninput="renderSingleImagingList()" placeholder="Cihaz veya model ara..." class="bg-gray-900 border border-white/15 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-400 w-48">
+                        </div>
+                    </div>
+
+                    <div id="single-imaging-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
                 </div>
             </div>
         </section>
@@ -2442,6 +2464,156 @@ def konfigurator_page():
             { stdCode: '144', memCode: '174', name: 'Ruby Red', hex: '#9c202c' }
         ];
 
+        // SILVERFOX 8000 B - FORMED UPHOLSTERY (PVC SERİSİ - 10 RENK)
+        const SF_PVC_COLORS = [
+            { code: 'PVC-1', name: 'Sky Blue', hex: '#6e9cc9' },
+            { code: 'PVC-2', name: 'Ocean Blue', hex: '#2b72a8' },
+            { code: 'PVC-3', name: 'Turquoise', hex: '#009895' },
+            { code: 'PVC-4', name: 'Steel Grey', hex: '#8b8d8c' },
+            { code: 'PVC-5', name: 'Royal Navy', hex: '#1b2f7a' },
+            { code: 'PVC-7', name: 'Terracotta', hex: '#cf5d2f' },
+            { code: 'PVC-8', name: 'Burgundy', hex: '#692a30' },
+            { code: 'PVC-11', name: 'Sand Beige', hex: '#b9b498' },
+            { code: 'PVC-12', name: 'Light Silver', hex: '#bfc1c6' },
+            { code: 'PVC-15', name: 'Jet Black', hex: '#14191b' }
+        ];
+
+        // SILVERFOX 8000 C SERİSİ - SEWN UPHOLSTERY (C SERİSİ MICROFIBER - 10 RENK)
+        const SF_C_COLORS = [
+            { code: 'C1', name: 'Cobalt Blue', hex: '#3373cc' },
+            { code: 'C3', name: 'Mint Green', hex: '#69ad88' },
+            { code: 'C4', name: 'Mocha Brown', hex: '#7d4a34' },
+            { code: 'C7', name: 'Coral Orange', hex: '#dc5334' },
+            { code: 'C9', name: 'Slate Blue', hex: '#6c7a86' },
+            { code: 'C10', name: 'Stone Grey', hex: '#9c9b97' },
+            { code: 'C12', name: 'Crimson Red', hex: '#9e2529' },
+            { code: 'C16', name: 'Plum Purple', hex: '#873377' },
+            { code: 'C22', name: 'Indigo Blue', hex: '#5459c4' },
+            { code: 'C23', name: 'Charcoal Black', hex: '#262729' }
+        ];
+
+        // SILVERFOX 8000 C SERİSİ - PREMIUM SILICONE UPHOLSTERY (S SERİSİ - 19 RENK)
+        const SF_S_COLORS = [
+            { code: 'S1', name: 'Oceania', hex: '#1b468f' },
+            { code: 'S2', name: 'Amber', hex: '#cc6d30' },
+            { code: 'S3', name: 'Cement', hex: '#81898e' },
+            { code: 'S4', name: 'Meteorite', hex: '#504e4d' },
+            { code: 'S5', name: 'Coal', hex: '#121212' },
+            { code: 'S6', name: 'Apple Green', hex: '#a1b479' },
+            { code: 'S7', name: 'Sky', hex: '#85b2cc' },
+            { code: 'S8', name: 'Kahki', hex: '#a2978d' },
+            { code: 'S9', name: 'Caramel', hex: '#7e6745' },
+            { code: 'S10', name: 'Ruby', hex: '#4d1c1d' },
+            { code: 'S11', name: 'Concord', hex: '#5e3e5e' },
+            { code: 'S12', name: 'Chestnut', hex: '#41342c' },
+            { code: 'S13', name: 'Gravel', hex: '#a9a8a4' },
+            { code: 'S14', name: 'Navy', hex: '#253140' },
+            { code: 'S15', name: 'Warm Grey', hex: '#999c8e' },
+            { code: 'S16', name: 'Techno Blue', hex: '#5b4fa0' },
+            { code: 'S17', name: 'Flaming Rose', hex: '#ce047a' },
+            { code: 'S18', name: 'Heather', hex: '#a36788' },
+            { code: 'S19', name: 'Neon Green', hex: '#21c40e' }
+        ];
+
+        // PAKETSİZ TEKİL GÖRÜNTÜLEME CİHAZLARI KATALOĞU (MYRAY • DABI ATLANTE • WOODPECKER)
+        const SINGLE_IMAGING_CATALOG = [
+            // MYRAY
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X5 AIR 2D PANORAMİK + PC', desc: 'Kompakt 2D Panoramik Görüntüleme + Orijinal PC', price: 12750, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY PROXIMA X6 AIR 2D PANORAMİK + PC', desc: 'Katmanlı 2D Panoramik + NeoWise AI + PC', price: 13500, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X5 AIR 3D 10x10 FOV + PC', desc: '3D CBCT + 2D Panoramik 10x10 FOV + PC', price: 34000, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X6 AIR 3D 11x15 FOV + PC', desc: '3D CBCT + 2D Panoramik 11x15 FOV + PC', price: 39999, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X5-X6 AIR 2D CEPH ATAÇMAN FARKI', desc: 'Sefalometrik kol ve ataçman ilavesi', price: 8500, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X5-X6 AIR 2D CEPH SENSÖR FARKI', desc: 'İkinci ayrı sefalometrik sensör farkı', price: 6500, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY AYAK FARKI (FREE STANDING)', desc: 'Duvar bağlantısız zemin sabitleme ayağı', price: 650, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X9 PRO 10x8 FOV (TABLET DAHİL)', desc: '3D+2D FullView Tomografi 10x8 FOV', price: 49500, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X9 PRO DIRECT SENSÖR DC 13x16 FOV', desc: 'Direct Conversion DC Sensör + Tablet + 10 Kullanıcı', price: 65000, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X9 PRO DIRECT SENSÖR FARKI', desc: 'Direct Conversion sensör yükseltme farkı', price: 9500, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X9 PRO CEPH TEK SENSÖRLÜ 10x8 FOV', desc: 'Sefalometrik dahil 10x8 FOV + Tablet', price: 53400, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X9 PRO 2D (3D READY)', desc: '3D yükseltmeye hazır 2D Panoramik', price: 17500, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X9 PRO 2D PAN/CEPH (3D READY)', desc: '3D yükseltmeye hazır Panoramik + Sefalometrik', price: 23500, curr: '€' },
+            { brand: 'MYRAY', cat: 'TARAYICI', name: 'MYRAY MYSCAN WL KABLOSUZ AĞIZ İÇİ TARAYICI', desc: '20 µm hassasiyet, 245 gr, ScanPro AI yazılımı', price: 11500, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY HYPERSPHERE DUVAR TİP PERİAPİKAL', desc: '0.4mm focal spot, küresel mafsal, kablosuz kumanda', price: 4250, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'STERN WEBER RX DC MOBİL DUVAR RÖNTGEN', desc: 'Yüksek frekanslı DC duvar tipi periapikal', price: 2750, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'STERN WEBER RX DC MOBİL AYAKLI RÖNTGEN', desc: 'Tekerlekli mobil ayaklı DC periapikal', price: 3250, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY ZEN-X DCIS KABLOSUZ RVG SENSÖR', desc: 'Direct Conversion kablosuz IP67 RVG sensör', price: 5000, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'MYRAY X-POD RVG SİSTEMİ', desc: 'Taşınabilir dokunmatik ekranlı RVG sistemi', price: 3350, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'HI-SCAN FOSFOR PLAK TARAYICI SETİ', desc: '0,1,2,3,4 plaklar + 100 tek kullanımlık kılıf + 40 koruma', price: 3500, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'HI-SCAN YEDEK PLAK SETİ (2 PLAK + KILIF)', desc: '2 adet yedek plak + 20 koruma + 50 kılıf', price: 215, curr: '€' },
+            { brand: 'MYRAY', cat: 'GÖRÜNTÜLEME', name: 'HI-SCAN SADECE YEDEK PLAK (2\'Lİ)', desc: '2 adet orijinal fosfor plak', price: 165, curr: '€' },
+            // DABI ATLANTE
+            { brand: 'DABI', cat: 'GÖRÜNTÜLEME', name: 'DABI ATLANTE EDGE AXR120 2D/3D MFOV 16x21 + PC', desc: '16x21 Complete Cranium MFOV + OnDemand 3D AI + PC', price: 65000, curr: '$' },
+            { brand: 'DABI', cat: 'GÖRÜNTÜLEME', name: 'DABI ATLANTE EDGE AXR120 2D/3D SFOV 9x14 + PC', desc: '9x14 FOV 3D CBCT + OnDemand 3D AI + PC', price: 35000, curr: '$' },
+            { brand: 'DABI', cat: 'GÖRÜNTÜLEME', name: 'DABI ATLANTE EDGE AXR90 3D 0.2 FS 9x14 + PC', desc: '0.2 Focal Spot yüksek çözünürlük 9x14 FOV + PC', price: 42000, curr: '$' },
+            { brand: 'DABI', cat: 'GÖRÜNTÜLEME', name: 'DABI ATLANTE EDGE AXR90 2D PANORAMİK + PC', desc: '41 katmanlı 2D AI Panoramik + Orijinal PC', price: 14500, curr: '$' },
+            { brand: 'DABI', cat: 'GÖRÜNTÜLEME', name: 'DABI ATLANTE NEW IDA RVG SIZE 1', desc: 'Değiştirilebilir kablolu 16-bit HD RVG Size 1', price: 1700, curr: '$' },
+            { brand: 'DABI', cat: 'GÖRÜNTÜLEME', name: 'DABI ATLANTE NEW IDA RVG SIZE 2', desc: 'Değiştirilebilir kablolu 16-bit HD RVG Size 2', price: 2100, curr: '$' },
+            // WOODPECKER
+            { brand: 'WOODPECKER', cat: 'GÖRÜNTÜLEME', name: 'WOODPECKER MINIRAY 2mA MOBİL PERİAPİKAL', desc: '0.4mm focal spot, taşınabilir bataryalı el röntgeni', price: 770, curr: '€' },
+            { brand: 'WOODPECKER', cat: 'GÖRÜNTÜLEME', name: 'WOODPECKER I-SENSOR H1 RVG SENSÖR SIZE 1', desc: '16-bit yüksek çözünürlük USB RVG sensör Size 1', price: 725, curr: '€' },
+            { brand: 'WOODPECKER', cat: 'GÖRÜNTÜLEME', name: 'WOODPECKER I-SENSOR H2 RVG SENSÖR SIZE 2', desc: '16-bit geniş aktif alan USB RVG sensör Size 2', price: 850, curr: '€' },
+            { brand: 'WOODPECKER', cat: 'EKİPMAN', name: 'WOODPECKER LED H ORTODONTİK IŞINLI DOLGU', desc: 'Valo tip geniş spektrumlu LED ışınlı dolgu cihazı', price: 250, curr: '$' }
+        ];
+
+        let activeSingleImagingBrand = 'ALL';
+
+        function filterSingleImaging(brand) {
+            activeSingleImagingBrand = brand;
+            ['ALL', 'MYRAY', 'DABI', 'WOODPECKER'].forEach(b => {
+                const btn = document.getElementById('img-flt-' + b);
+                if (btn) {
+                    btn.className = b === brand
+                        ? 'px-3 py-1.5 rounded-lg bg-sky-500 text-white font-bold'
+                        : 'px-3 py-1.5 rounded-lg text-gray-400 hover:text-white font-semibold';
+                }
+            });
+            renderSingleImagingList();
+        }
+
+        function renderSingleImagingList() {
+            const grid = document.getElementById('single-imaging-grid');
+            if (!grid) return;
+            const q = (document.getElementById('single-imaging-search')?.value || '').trim().toLowerCase();
+            grid.innerHTML = '';
+
+            const filtered = SINGLE_IMAGING_CATALOG.filter(item => {
+                const brandMatch = activeSingleImagingBrand === 'ALL' || item.brand === activeSingleImagingBrand;
+                const textMatch = !q || item.name.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q) || item.brand.toLowerCase().includes(q);
+                return brandMatch && textMatch;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-6 text-xs text-gray-500">Aramanıza uygun tekil cihaz bulunamadı.</div>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const brandColors = {
+                    'MYRAY': 'text-purple-300 bg-purple-500/20 border-purple-500/30',
+                    'DABI': 'text-amber-300 bg-amber-500/20 border-amber-500/30',
+                    'WOODPECKER': 'text-sky-300 bg-sky-500/20 border-sky-500/30'
+                };
+                const badgeCls = brandColors[item.brand] || 'text-gray-300 bg-gray-800 border-white/10';
+                const currTag = item.curr === '$' ? ' (USD $)' : '';
+                const safeName = `${item.name}${currTag}`.replace(/'/g, "\\'");
+
+                const card = document.createElement('div');
+                card.className = 'glass-card rounded-2xl p-4 border border-white/10 flex flex-col justify-between gap-3';
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[10px] font-mono px-2 py-0.5 rounded border font-bold ${badgeCls}">${item.brand === 'DABI' ? 'DABI ATLANTE' : item.brand}</span>
+                            <span class="font-mono font-bold text-sm text-emerald-400">${item.price.toLocaleString('tr-TR')} ${item.curr}</span>
+                        </div>
+                        <h4 class="font-bold text-white text-xs mt-2 leading-snug">${item.name}</h4>
+                        <p class="text-[11px] text-gray-400 mt-1">${item.desc}</p>
+                    </div>
+                    <button onclick="addItemToProposal('${item.cat}', '${safeName}', 1, ${item.price})" class="w-full py-1.5 rounded-xl bg-gray-800 hover:bg-sky-500 text-white text-[11px] font-bold transition-all">
+                        + Teklife Ekle (${item.price.toLocaleString('tr-TR')} ${item.curr})
+                    </button>`;
+                grid.appendChild(card);
+            });
+        }
+
         function switchTab(tabId) {
             ['configurator', 'imaging', 'calculator', 'proposal', 'ideas'].forEach(v => {
                 document.getElementById('view-' + v).classList.add('hidden');
@@ -2504,6 +2676,25 @@ def konfigurator_page():
             document.getElementById('spec-payment').textContent = data.paymentNote;
             document.getElementById('sheet-unit-name').textContent = `${data.name} (${data.basePrice.toLocaleString('tr-TR')} ${curr})`;
             document.getElementById('sheet-footer-note').textContent = `Ödeme Koşulu: ${data.paymentNote} • Fiyatlara KDV Dahil Değildir.`;
+
+            // Modele göre doğru renk kartelasını otomatik yükle
+            if (modelKey === 'SF8000B') {
+                appState.upholsteryType = 'sf_pvc';
+                setUpholstery(SF_PVC_COLORS[0].hex, `${SF_PVC_COLORS[0].code} ${SF_PVC_COLORS[0].name}`);
+            } else if (modelKey === 'SF8000C' || modelKey === 'SF8000C_IMP') {
+                if (appState.upholsteryType !== 'sf_c' && appState.upholsteryType !== 'sf_s') {
+                    appState.upholsteryType = 'sf_c';
+                }
+                const list = appState.upholsteryType === 'sf_s' ? SF_S_COLORS : SF_C_COLORS;
+                setUpholstery(list[0].hex, `${list[0].code} ${list[0].name}`);
+            } else {
+                if (appState.upholsteryType !== 'standard' && appState.upholsteryType !== 'memory') {
+                    appState.upholsteryType = 'standard';
+                }
+                const firstSw = SW_COLORS[0];
+                const code = appState.upholsteryType === 'memory' ? firstSw.memCode : firstSw.stdCode;
+                setUpholstery(firstSw.hex, `${code} ${firstSw.name}`);
+            }
 
             appState.currentUnitSheetItems = JSON.parse(JSON.stringify(data.items));
             renderUnitSheetTable();
@@ -2587,7 +2778,13 @@ def konfigurator_page():
                 if (it.price > 0) { singlePrice += it.price; extraDescs.push(`${it.desc} (+${it.price}€)`); }
             });
             const qty = Math.max(1, parseInt(document.getElementById('unit-qty-input').value || 1, 10));
-            const uphTag = appState.upholsteryType === 'memory' ? ' [Memory Foam]' : '';
+            const uphLabels = {
+                'memory': ' [Memory Foam]',
+                'sf_pvc': ' [PVC Serisi]',
+                'sf_c': ' [C Serisi Microfiber]',
+                'sf_s': ' [S Serisi Silikon]'
+            };
+            const uphTag = uphLabels[appState.upholsteryType] || '';
             const addInfo = extraDescs.length ? ` [Ekstralar: ${extraDescs.join(', ')}]` : '';
             const currTag = curr === '$' ? ' (USD $)' : '';
             const fullName = `${data.name.toUpperCase()} ${appState.armType.toUpperCase()} - ${appState.colorName}${uphTag} (${data.reflector})${addInfo}${currTag}`;
@@ -2598,49 +2795,61 @@ def konfigurator_page():
             const data = UNIT_CATALOG[appState.selectedModelKey];
             const curr = data.currency || '€';
             const qty = Math.max(1, parseInt(document.getElementById('unit-qty-input').value || 1, 10));
-            const uphTag = appState.upholsteryType === 'memory' ? 'Memory Foam ' : '';
+            const uphLabels = {
+                'memory': 'Memory Foam ',
+                'sf_pvc': 'PVC ',
+                'sf_c': 'Microfiber ',
+                'sf_s': 'Silikon '
+            };
+            const uphTag = uphLabels[appState.upholsteryType] || '';
             const currTag = curr === '$' ? ' (USD $)' : '';
             addItemToProposal('ÜNİTE', `${data.name.toUpperCase()} ${appState.armType.toUpperCase()} (İZDO 33. Kongre - ${uphTag}${appState.colorName})${currTag}`, qty, data.basePrice);
             appState.currentUnitSheetItems.forEach(it => {
-                const isPaid = (it.price || 0) > 0;
-                const statusTag = it.status ? `[${it.status}] ` : '';
-                addItemToProposal(it.cat, `  ↳ ${statusTag}${it.desc}`, qty, isPaid ? it.price : 0);
-            });
-            showToast("Tüm konfigürasyon satırları teklife aktarıldı!");
-            switchTab('proposal');
-        }
+        function renderUpholsteryTabs() {
+            const tabsBox = document.getElementById('upholstery-type-tabs');
+            if (!tabsBox) return;
+            const modelKey = appState.selectedModelKey;
+            tabsBox.innerHTML = '';
 
-        function setArmType(type) {
-            const whipGroup = document.getElementById('svg-whip-arms');
-            const btnCont = document.getElementById('arm-continental');
-            const btnIntl = document.getElementById('arm-international');
-            const data = UNIT_CATALOG[appState.selectedModelKey];
-            if (type === 'continental') {
-                if (whipGroup) whipGroup.style.display = 'block';
-                appState.armType = 'Kamçılı (Continental)';
-                btnCont.className = 'py-2 px-3 rounded-xl border border-sky-500 bg-sky-500/15 text-xs font-semibold text-white flex items-center justify-center gap-1.5';
-                btnIntl.className = 'py-2 px-3 rounded-xl border border-white/10 bg-gray-900/60 text-xs font-medium text-gray-300 flex items-center justify-center gap-1.5';
+            let tabs = [];
+            if (modelKey === 'SF8000B') {
+                tabs = [{ id: 'sf_pvc', label: 'PVC Serisi (10)', activeCls: 'bg-sky-500 text-white' }];
+            } else if (modelKey === 'SF8000C' || modelKey === 'SF8000C_IMP') {
+                tabs = [
+                    { id: 'sf_c', label: 'C Serisi Microfiber (10)', activeCls: 'bg-sky-500 text-white' },
+                    { id: 'sf_s', label: 'S Serisi Silikon (19)', activeCls: 'bg-purple-500 text-white' }
+                ];
             } else {
-                if (whipGroup) whipGroup.style.display = 'none';
-                appState.armType = 'Askılı (International)';
-                btnIntl.className = 'py-2 px-3 rounded-xl border border-sky-500 bg-sky-500/15 text-xs font-semibold text-white flex items-center justify-center gap-1.5';
-                btnCont.className = 'py-2 px-3 rounded-xl border border-white/10 bg-gray-900/60 text-xs font-medium text-gray-300 flex items-center justify-center gap-1.5';
+                tabs = [
+                    { id: 'standard', label: 'Standard (19)', activeCls: 'bg-sky-500 text-white' },
+                    { id: 'memory', label: 'Memory Foam (19)', activeCls: 'bg-purple-500 text-white' }
+                ];
             }
-            document.getElementById('unit-badge-delivery').textContent = appState.armType;
-            document.getElementById('unit-title-display').textContent = data.name + ' ' + appState.armType.split(' ')[0];
+
+            tabs.forEach(t => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => setUpholsteryType(t.id);
+                const isActive = appState.upholsteryType === t.id;
+                btn.className = `px-2 py-0.5 rounded-md font-bold text-[10px] transition-all ${isActive ? t.activeCls : 'text-gray-400 hover:text-white'}`;
+                btn.textContent = t.label;
+                tabsBox.appendChild(btn);
+            });
         }
 
         function setUpholsteryType(type) {
             appState.upholsteryType = type;
-            document.getElementById('uph-std-btn').className = type === 'standard'
-                ? 'px-2 py-0.5 rounded-md bg-sky-500 text-white font-bold text-[10px]'
-                : 'px-2 py-0.5 rounded-md text-gray-400 hover:text-white font-bold text-[10px]';
-            document.getElementById('uph-mem-btn').className = type === 'memory'
-                ? 'px-2 py-0.5 rounded-md bg-purple-500 text-white font-bold text-[10px]'
-                : 'px-2 py-0.5 rounded-md text-gray-400 hover:text-white font-bold text-[10px]';
-            const currentObj = SW_COLORS.find(c => appState.colorName.includes(c.name)) || SW_COLORS[0];
-            const activeCode = type === 'memory' ? currentObj.memCode : currentObj.stdCode;
-            setUpholstery(currentObj.hex, `${activeCode} ${currentObj.name}`);
+            if (type === 'sf_pvc') {
+                setUpholstery(SF_PVC_COLORS[0].hex, `${SF_PVC_COLORS[0].code} ${SF_PVC_COLORS[0].name}`);
+            } else if (type === 'sf_c') {
+                setUpholstery(SF_C_COLORS[0].hex, `${SF_C_COLORS[0].code} ${SF_C_COLORS[0].name}`);
+            } else if (type === 'sf_s') {
+                setUpholstery(SF_S_COLORS[0].hex, `${SF_S_COLORS[0].code} ${SF_S_COLORS[0].name}`);
+            } else {
+                const currentObj = SW_COLORS.find(c => appState.colorName.includes(c.name)) || SW_COLORS[0];
+                const activeCode = type === 'memory' ? currentObj.memCode : currentObj.stdCode;
+                setUpholstery(currentObj.hex, `${activeCode} ${currentObj.name}`);
+            }
         }
 
         function setUpholstery(hex, label) {
@@ -2651,23 +2860,40 @@ def konfigurator_page():
             document.getElementById('svg-ambient-led').setAttribute('fill', hex);
             document.getElementById('selected-color-label').textContent = label;
             document.getElementById('color-name-badge').textContent = label;
+            renderUpholsteryTabs();
             renderColorSwatches();
         }
 
         function renderColorSwatches() {
             const box = document.getElementById('upholstery-swatches-container');
             box.innerHTML = '';
-            SW_COLORS.forEach(c => {
-                const code = appState.upholsteryType === 'memory' ? c.memCode : c.stdCode;
+
+            let palette = [];
+            if (appState.upholsteryType === 'sf_pvc') {
+                palette = SF_PVC_COLORS;
+            } else if (appState.upholsteryType === 'sf_c') {
+                palette = SF_C_COLORS;
+            } else if (appState.upholsteryType === 'sf_s') {
+                palette = SF_S_COLORS;
+            } else {
+                palette = SW_COLORS.map(c => ({
+                    code: appState.upholsteryType === 'memory' ? c.memCode : c.stdCode,
+                    name: c.name,
+                    hex: c.hex
+                }));
+            }
+
+            palette.forEach(c => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                const isSelected = appState.colorName.includes(c.name);
-                btn.onclick = () => setUpholstery(c.hex, `${code} ${c.name}`);
-                btn.title = `${code} ${c.name}`;
+                const fullLabel = `${c.code} ${c.name}`;
+                const isSelected = appState.colorName === fullLabel;
+                btn.onclick = () => setUpholstery(c.hex, fullLabel);
+                btn.title = fullLabel;
                 btn.className = `p-1.5 rounded-xl border transition-all flex flex-col items-center text-center ${isSelected ? 'border-sky-400 bg-sky-500/25 shadow-sm' : 'border-white/10 bg-gray-900/70 hover:border-white/30'}`;
                 btn.innerHTML = `
                     <span class="w-5 h-5 rounded-full border border-white/40 shadow-inner" style="background-color: ${c.hex}"></span>
-                    <span class="text-[9px] font-mono font-bold mt-1 text-white leading-none">${code}</span>
+                    <span class="text-[9px] font-mono font-bold mt-1 text-white leading-none">${c.code}</span>
                     <span class="text-[8px] text-gray-300 mt-0.5 leading-tight line-clamp-1 w-full">${c.name}</span>`;
                 box.appendChild(btn);
             });
@@ -2980,8 +3206,8 @@ def konfigurator_page():
                 document.getElementById('pin-lock-overlay').classList.add('hidden');
             }
             populateTdbOptionsDropdown();
-            renderColorSwatches();
             selectUnitModel('S200');
+            renderSingleImagingList();
             updateEngineeringCalc();
             resetToBlankTemplate();
         };
