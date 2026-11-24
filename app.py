@@ -1862,36 +1862,45 @@ def konfigurator_page():
         <section id="view-calculator" class="hidden space-y-6">
             <div class="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 space-y-6">
                 <div>
-                    <span class="text-xs uppercase tracking-widest text-emerald-400 font-bold">MGF COMPRESSORS İTALYA & STERİLİZASYON</span>
-                    <h2 class="font-display text-2xl sm:text-3xl font-bold text-white mt-1">MGF Prime Kompresör, Hybrid Aspiratör & Otoklav Sihirbazı</h2>
+                    <span class="text-xs uppercase tracking-widest text-emerald-400 font-bold">MGF COMPRESSORS İTALYA (PRIME & HYBRID KATALOĞU) & STERİLİZASYON</span>
+                    <h2 class="font-display text-2xl sm:text-3xl font-bold text-white mt-1">MGF Prime Kompresör, Hybrid Aspiratör, Aspir-Comp & Otoklav Sihirbazı</h2>
+                    <p class="text-xs text-gray-400 mt-1">Resmi MGF Prime & Aspirazione katalog verilerine (debi, vakum mbar, tank hacmi ve dB) göre birebir mühendislik eşleştirmesi.</p>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                     <div class="lg:col-span-5 space-y-4 bg-gray-900/70 p-5 rounded-2xl border border-white/10">
                         <div class="space-y-2">
                             <div class="flex justify-between items-center">
                                 <label class="text-xs font-semibold text-gray-200">Klinikteki Ünit Sayısı</label>
-                                <span id="calc-unit-val" class="px-2.5 py-0.5 rounded-lg bg-sky-500/20 text-sky-300 font-bold text-base">4 Ünit</span>
+                                <span id="calc-unit-val" class="px-2.5 py-0.5 rounded-lg bg-sky-500/20 text-sky-300 font-bold text-base">1 Ünit</span>
                             </div>
-                            <input type="range" id="calc-units" min="1" max="18" value="4" oninput="updateEngineeringCalc()" class="w-full accent-sky-500 cursor-pointer h-2 bg-gray-800 rounded-lg">
+                            <input type="range" id="calc-units" min="1" max="18" value="1" oninput="updateEngineeringCalc()" class="w-full accent-sky-500 cursor-pointer h-2 bg-gray-800 rounded-lg">
+                            <div class="flex justify-between text-[10px] text-gray-500 font-mono">
+                                <span>1</span><span>3</span><span>6</span><span>9</span><span>12</span><span>15</span><span>18 Ünit</span>
+                            </div>
                         </div>
                         <div class="space-y-1.5">
-                            <label class="text-xs font-semibold uppercase text-gray-400">Kurutucu / Kabin Tercihi</label>
+                            <label class="text-xs font-semibold uppercase text-gray-400">Kompresör Tipi (Kurutucu / Kabin)</label>
                             <select id="calc-comp-type" onchange="updateEngineeringCalc()" class="w-full bg-gray-800 border border-white/15 rounded-xl px-3 py-2 text-xs text-white">
-                                <option value="M" selected>PRIME M: Membran Kurutuculu</option>
-                                <option value="CS-M">CS PRIME M: Sessiz Kabinli + Kurutuculu</option>
-                                <option value="S">PRIME S: Standart Prime</option>
+                                <option value="M" selected>PRIME M: Membran Kurutuculu (-20°C)</option>
+                                <option value="CS-M">CS / MINI BOX PRIME M: Sessiz Kabinli + Kurutuculu</option>
+                                <option value="S">PRIME S: Standart (Kurutucusuz)</option>
+                                <option value="CS-S">CS / MINI BOX PRIME S: Sessiz Kabinli (Kurutucusuz)</option>
                             </select>
                         </div>
                         <div class="space-y-1.5">
                             <label class="text-xs font-semibold uppercase text-gray-400">Aspiratör Teknolojisi</label>
                             <div class="grid grid-cols-2 gap-2">
-                                <button onclick="setSuctionType('hybrid')" id="suction-hybrid" class="py-2 px-3 rounded-xl border border-sky-500 bg-sky-500/15 text-xs font-semibold text-white">MGF HYBRID (Islak)</button>
-                                <button onclick="setSuctionType('dry')" id="suction-dry" class="py-2 px-3 rounded-xl border border-white/10 bg-gray-800 text-xs font-medium text-gray-400">MGF DRY (Kuru)</button>
+                                <button onclick="setSuctionType('hybrid')" id="suction-hybrid" class="py-2 px-3 rounded-xl border border-sky-500 bg-sky-500/15 text-xs font-semibold text-white">MGF HYBRID (Yarı Islak)</button>
+                                <button onclick="setSuctionType('dry')" id="suction-dry" class="py-2 px-3 rounded-xl border border-white/10 bg-gray-800 text-xs font-medium text-gray-400">MGF ASPIR / SILENT (Kuru)</button>
                             </div>
                         </div>
                         <label class="flex items-center justify-between p-2.5 rounded-xl bg-gray-800/80 border border-white/10 cursor-pointer">
-                            <span class="text-xs font-semibold text-white">ECO II+ Amalgam Ayırıcı (-AS)</span>
+                            <span class="text-xs font-semibold text-white">ECO II+ Amalgam Ayırıcı (-AS, %99.3)</span>
                             <input type="checkbox" id="calc-amalgam" onchange="updateEngineeringCalc()" class="w-4 h-4 accent-emerald-500 rounded">
+                        </label>
+                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-gray-800/80 border border-white/10 cursor-pointer">
+                            <span class="text-xs font-semibold text-white">Aspiratör Sessiz Kabin / Kapak (-S / CA-CR-060)</span>
+                            <input type="checkbox" id="calc-vac-cabinet" onchange="updateEngineeringCalc()" class="w-4 h-4 accent-sky-500 rounded">
                         </label>
                         <div class="space-y-1.5">
                             <label class="text-xs font-semibold uppercase text-gray-400">Otoklav Seçimi</label>
@@ -1904,38 +1913,65 @@ def konfigurator_page():
                     </div>
 
                     <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- KOMPRESÖR KARTI -->
                         <div class="glass-card rounded-2xl p-4 border border-sky-500/30 flex flex-col justify-between space-y-3">
                             <div class="space-y-1.5">
-                                <span class="text-[10px] font-mono uppercase text-sky-400 font-bold">MGF KOMPRESÖR</span>
-                                <h4 id="out-comp-title" class="font-bold text-white text-base">MGF 50/25 PRIME M</h4>
-                                <div id="out-comp-code" class="text-xs font-mono text-sky-300">PR-OF300-040-M</div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-mono uppercase text-sky-400 font-bold">MGF PRIME KOMPRESÖR</span>
+                                    <span id="out-comp-tank" class="text-[10px] font-mono text-gray-400">24 L • 1 HP</span>
+                                </div>
+                                <h4 id="out-comp-title" class="font-bold text-white text-base">MGF 30/7 PRIME M</h4>
+                                <div id="out-comp-code" class="text-xs font-mono text-sky-300">PR-OF100-024-M</div>
                                 <div class="text-xs text-gray-400 space-y-0.5 pt-2 border-t border-white/10">
-                                    <div class="flex justify-between"><span>Debi:</span> <strong id="out-air-lpm" class="text-white">225 l/dk</strong></div>
-                                    <div class="flex justify-between"><span>Ses:</span> <span id="out-comp-noise" class="text-emerald-400">66 dB(A)</span></div>
+                                    <div class="flex justify-between"><span>Debi (@ 5 bar):</span> <strong id="out-air-lpm" class="text-white">85 l/dk</strong></div>
+                                    <div class="flex justify-between"><span>Ses Seviyesi:</span> <span id="out-comp-noise" class="text-emerald-400">65 dB(A)</span></div>
+                                    <div class="flex justify-between"><span>Kapasite:</span> <span id="out-comp-cap" class="text-gray-200">1 Ünit</span></div>
                                 </div>
                             </div>
                             <div class="pt-2 flex items-center justify-between">
-                                <span id="out-comp-price" class="font-bold text-sm text-emerald-400">3.250 €</span>
+                                <span id="out-comp-price" class="font-bold text-sm text-emerald-400">1.650 €</span>
                                 <button onclick="addCalculatedCompToProposal()" class="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-xs font-bold">+ Ekle</button>
                             </div>
                         </div>
 
+                        <!-- ASPİRATÖR KARTI -->
                         <div class="glass-card rounded-2xl p-4 border border-emerald-500/30 flex flex-col justify-between space-y-3">
                             <div class="space-y-1.5">
-                                <span class="text-[10px] font-mono uppercase text-emerald-400 font-bold">MGF ASPİRATÖR</span>
-                                <h4 id="out-vac-title" class="font-bold text-white text-base">MGF HYBRID 2</h4>
-                                <div id="out-vac-code" class="text-xs font-mono text-emerald-300">AS-100-EX</div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-mono uppercase text-emerald-400 font-bold">MGF CERRAHİ ASPİRATÖR</span>
+                                    <span id="out-vac-noise" class="text-[10px] font-mono text-gray-400">63 dB(A)</span>
+                                </div>
+                                <h4 id="out-vac-title" class="font-bold text-white text-base">MGF HYBRID 1S</h4>
+                                <div id="out-vac-code" class="text-xs font-mono text-emerald-300">AS-075-EX</div>
                                 <div class="text-xs text-gray-400 space-y-0.5 pt-2 border-t border-white/10">
-                                    <div class="flex justify-between"><span>Emiş:</span> <strong id="out-vac-lpm" class="text-white">1.500 l/dk</strong></div>
-                                    <div class="flex justify-between"><span>Vakum:</span> <span class="text-gray-200">180 mbar</span></div>
+                                    <div class="flex justify-between"><span>Emiş Debisi:</span> <strong id="out-vac-lpm" class="text-white">1.100 l/dk</strong></div>
+                                    <div class="flex justify-between"><span>Maks. Vakum:</span> <span id="out-vac-mbar" class="text-gray-200">120/140 mbar</span></div>
+                                    <div class="flex justify-between"><span>Kapasite:</span> <span id="out-vac-cap" class="text-gray-200">1 Simultane / 1-2 Ünit</span></div>
                                 </div>
                             </div>
                             <div class="pt-2 flex items-center justify-between">
-                                <span id="out-vac-price" class="font-bold text-sm text-emerald-400">2.950 €</span>
+                                <span id="out-vac-price" class="font-bold text-sm text-emerald-400">1.300 €</span>
                                 <button onclick="addCalculatedVacToProposal()" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">+ Ekle</button>
                             </div>
                         </div>
 
+                        <!-- ASPIR-COMP 2-IN-1 ÖNERİ KARTI (1-4 ÜNİT) -->
+                        <div id="aspir-comp-card" class="glass-card rounded-2xl p-4 border border-cyan-500/30 flex flex-col justify-between space-y-3 sm:col-span-2">
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-mono uppercase text-cyan-400 font-bold">2-IN-1 ENTEGRE ÇÖZÜM (KOMPRESÖR + ASPİRATÖR TEK KABİN)</span>
+                                    <span id="out-ac-noise" class="text-[10px] font-mono text-emerald-400">52-55 dB(A)</span>
+                                </div>
+                                <div class="flex justify-between items-center gap-2">
+                                    <h4 id="out-ac-title" class="font-bold text-white text-sm">ASPIR-COMP 24/10 GENESI MC (Hybrid 1S)</h4>
+                                    <span id="out-ac-price" class="font-bold text-sm text-cyan-300 shrink-0">6.500 €</span>
+                                </div>
+                                <p id="out-ac-desc" class="text-xs text-gray-400">Kod: D-AC150-024-MC • 1-2 Ünitlik kompakt sessiz kabin (0.26 m²).</p>
+                            </div>
+                            <button onclick="addCalculatedAspirCompToProposal()" class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold">+ 2-in-1 Aspir-Comp Sistemini Teklife Ekle</button>
+                        </div>
+
+                        <!-- STERİLİZASYON KARTI -->
                         <div class="glass-card rounded-2xl p-4 border border-amber-500/30 flex flex-col justify-between space-y-3 sm:col-span-2">
                             <div class="space-y-1.5">
                                 <span class="text-[10px] font-mono uppercase text-amber-400 font-bold">STERİLİZASYON PARKURU</span>
@@ -1947,6 +1983,78 @@ def konfigurator_page():
                             </div>
                             <button onclick="addCalculatedSterilToProposal()" class="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold">+ Otoklav Paketini Teklife Ekle</button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- MGF TEKİL ÜRÜN & AKSESUAR KATALOĞU (İZDO 2026 FİYATLARI) -->
+                <div class="pt-5 border-t border-white/10 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <span class="text-[10px] font-mono uppercase text-sky-400 font-bold">İZDO 2026 MGF TEKİL LİSTE & AKSESUARLAR</span>
+                            <h3 class="font-display text-lg font-bold text-white">Doğrudan Tekil MGF Modeli veya Kabin Ekle</h3>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                        <button onclick="addItemToProposal('ASPİRATÖR', 'MGF ASPİRATÖR HYBRID 1S (AS-075-EX • 1-2 ÜNİT • 1.100 Lt/dk) (İTALYA)', 1, 1300)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-emerald-600/20 border border-white/10 hover:border-emerald-500/40 text-left transition-all">
+                            <div class="font-bold text-white">MGF Hybrid 1S</div>
+                            <div class="text-[10px] text-gray-400">1 Ünit • 1.100 l/dk • AS-075-EX</div>
+                            <div class="font-mono font-bold text-emerald-400 mt-1">1.300 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('ASPİRATÖR', 'MGF ASPİRATÖR HYBRID 1 (AS-094-EX • 2 ÜNİT • 1.300 Lt/dk) (İTALYA)', 1, 2250)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-emerald-600/20 border border-white/10 hover:border-emerald-500/40 text-left transition-all">
+                            <div class="font-bold text-white">MGF Hybrid 1</div>
+                            <div class="text-[10px] text-gray-400">2 Ünit • 1.300 l/dk • AS-094-EX</div>
+                            <div class="font-mono font-bold text-emerald-400 mt-1">2.250 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('ASPİRATÖR', 'MGF ASPİRATÖR HYBRID 2 (AS-100-EX • 3 ÜNİT • 1.500 Lt/dk) (İTALYA)', 1, 2950)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-emerald-600/20 border border-white/10 hover:border-emerald-500/40 text-left transition-all">
+                            <div class="font-bold text-white">MGF Hybrid 2</div>
+                            <div class="text-[10px] text-gray-400">3 Ünit • 1.500 l/dk • AS-100-EX</div>
+                            <div class="font-mono font-bold text-emerald-400 mt-1">2.950 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('ASPİRATÖR', 'MGF ASPİRATÖR HYBRID 5 İNVERTERLİ (AS-150-EX • 4-6 ÜNİT • 2.500 Lt/dk) (İTALYA)', 1, 4150)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-emerald-600/20 border border-white/10 hover:border-emerald-500/40 text-left transition-all">
+                            <div class="font-bold text-white">MGF Hybrid 5</div>
+                            <div class="text-[10px] text-gray-400">4-6 Ünit • 2.500 l/dk • AS-150-EX</div>
+                            <div class="font-mono font-bold text-emerald-400 mt-1">4.150 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('KOMPRESÖR', 'MGF KOMPRESÖR PRIME S 50/15 (PR-OF200-040 • 2-3 ÜNİT • 170 Lt/dk) (İTALYA)', 1, 1650)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-sky-600/20 border border-white/10 hover:border-sky-500/40 text-left transition-all">
+                            <div class="font-bold text-white">Prime S 50/15</div>
+                            <div class="text-[10px] text-gray-400">2-3 Ünit • 170 l/dk • 40L</div>
+                            <div class="font-mono font-bold text-sky-400 mt-1">1.650 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('KOMPRESÖR', 'MGF KOMPRESÖR PRIME M 50/15 KURUTUCULU (PR-OF200-040-M • 2-3 ÜNİT) (İTALYA)', 1, 2350)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-sky-600/20 border border-white/10 hover:border-sky-500/40 text-left transition-all">
+                            <div class="font-bold text-white">Prime M 50/15</div>
+                            <div class="text-[10px] text-gray-400">2-3 Ünit • Kurutuculu • 152 l/dk</div>
+                            <div class="font-mono font-bold text-sky-400 mt-1">2.350 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('KOMPRESÖR', 'MGF KOMPRESÖR PRIME S 50/25 (PR-OF300-040 • 3-4 ÜNİT • 250 Lt/dk) (İTALYA)', 1, 2350)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-sky-600/20 border border-white/10 hover:border-sky-500/40 text-left transition-all">
+                            <div class="font-bold text-white">Prime S 50/25</div>
+                            <div class="text-[10px] text-gray-400">3-4 Ünit • 250 l/dk • 40L</div>
+                            <div class="font-mono font-bold text-sky-400 mt-1">2.350 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('KOMPRESÖR', 'MGF KOMPRESÖR PRIME M 50/25 KURUTUCULU (PR-OF300-040-M • 3-4 ÜNİT) (İTALYA)', 1, 3250)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-sky-600/20 border border-white/10 hover:border-sky-500/40 text-left transition-all">
+                            <div class="font-bold text-white">Prime M 50/25</div>
+                            <div class="text-[10px] text-gray-400">3-4 Ünit • Kurutuculu • 225 l/dk</div>
+                            <div class="font-mono font-bold text-sky-400 mt-1">3.250 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('KOMPRESÖR', 'MGF KOMPRESÖR TANDEM 100/30 PRIME M (PR-OF400-090-MT • 4-6 ÜNİT) (İTALYA)', 1, 7000)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-sky-600/20 border border-white/10 hover:border-sky-500/40 text-left transition-all">
+                            <div class="font-bold text-white">Tandem 100/30 M</div>
+                            <div class="text-[10px] text-gray-400">4-6 Ünit • 305 l/dk • 90L</div>
+                            <div class="font-mono font-bold text-sky-400 mt-1">7.000 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('KOMPRESÖR', 'MGF KOMPRESÖR TANDEM 100/50 PRIME M (PR-OF600-090-MT • 6-8 ÜNİT) (İTALYA)', 1, 8000)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-sky-600/20 border border-white/10 hover:border-sky-500/40 text-left transition-all">
+                            <div class="font-bold text-white">Tandem 100/50 M</div>
+                            <div class="text-[10px] text-gray-400">6-8 Ünit • 450 l/dk • 90L</div>
+                            <div class="font-mono font-bold text-sky-400 mt-1">8.000 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('AKSESUAR', 'MGF KOMPRESÖR SESSİZ KABİNİ (HAVALANDIRMA TERTİBATI İLE)', 1, 1650)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-amber-600/20 border border-white/10 hover:border-amber-500/40 text-left transition-all">
+                            <div class="font-bold text-white">Kompresör Kabini</div>
+                            <div class="text-[10px] text-gray-400">Havalandırmalı Akustik Kabin</div>
+                            <div class="font-mono font-bold text-amber-300 mt-1">1.650 €</div>
+                        </button>
+                        <button onclick="addItemToProposal('AKSESUAR', 'MGF ASPİRATÖR SESSİZ KABİNİ HYBRID 2-5 (CA-CR-060 • 47 dB)', 1, 1250)" class="p-3 rounded-xl bg-gray-900/80 hover:bg-amber-600/20 border border-white/10 hover:border-amber-500/40 text-left transition-all">
+                            <div class="font-bold text-white">Aspiratör Kabini</div>
+                            <div class="text-[10px] text-gray-400">Hybrid 2-5 • CA-CR-060 (47 dB)</div>
+                            <div class="font-mono font-bold text-amber-300 mt-1">1.250 €</div>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2430,11 +2538,12 @@ def konfigurator_page():
             colorName: '102 Atlantic Blue',
             colorHex: '#1b589d',
             suctionType: 'hybrid',
-            calcUnits: 4,
+            calcUnits: 1,
             currentUnitSheetItems: [],
             proposalItems: [],
-            currentCalcComp: { name: 'MGF 50/25 PRIME M KURUTUCULU DENTAL KOMPRESÖR (İTALYA)', qty: 1, unitPrice: 3250 },
-            currentCalcVac: { name: 'MGF HYBRID 2 DENTAL ASPİRATÖR CİHAZI 1.500 Lt/dk (İTALYA)', qty: 1, unitPrice: 2950 },
+            currentCalcComp: { name: 'MGF 30/7 PRIME M KURUTUCULU DENTAL KOMPRESÖR (PR-OF100-024-M) (İTALYA)', qty: 1, unitPrice: 1650 },
+            currentCalcVac: { name: 'MGF HYBRID 1S DENTAL ASPİRATÖR (AS-075-EX • 1.100 Lt/dk) (İTALYA)', qty: 1, unitPrice: 1300 },
+            currentCalcAspirComp: { name: 'MGF ASPIR-COMP 24/10 GENESI MC (HYBRID 1S) (D-AC150-024-MC) (İTALYA)', qty: 1, unitPrice: 6500 },
             currentCalcSteril: { name: 'YESON DASLAV S 23 Lt B-CLASS OTOKLAV SETİ (ÇİN)', qty: 1, unitPrice: 2000 }
         };
 
@@ -2930,44 +3039,260 @@ def konfigurator_page():
             const units = parseInt(document.getElementById('calc-units').value, 10);
             const compType = document.getElementById('calc-comp-type').value;
             const hasAmalgam = document.getElementById('calc-amalgam').checked;
+            const hasVacCabinet = document.getElementById('calc-vac-cabinet').checked;
             const sterilBrand = document.getElementById('calc-steril-brand').value;
             appState.calcUnits = units;
             document.getElementById('calc-unit-val').textContent = units + ' Ünit';
 
-            let compName = "MGF 50/25 PRIME M", compCode = "PR-OF300-040-M", compLpm = "225 l/dk", compNoise = "66 dB(A)", compPrice = 3250, compQty = 1;
-            if (units <= 1) {
-                compName = compType === 'CS-M' ? "MGF MINI BOX 24/7 PRIME M" : "MGF 30/7 PRIME M";
-                compCode = "PR-OF100-024-M"; compLpm = "85 l/dk"; compNoise = compType === 'CS-M' ? "50 dB(A)" : "65 dB(A)"; compPrice = compType === 'CS-M' ? 2150 : 1650;
+            const isDryer = (compType === 'M' || compType === 'CS-M');
+            const isSilent = (compType === 'CS-M' || compType === 'CS-S');
+
+            // 1) MGF PRIME KOMPRESÖR HESABI (Resmi MGF Prime Kataloğu + İZDO 2026)
+            let compName = "", compCode = "", compLpm = "", compNoise = "", compTank = "", compCap = "", compPrice = 0, compQty = 1;
+
+            if (units === 1) {
+                compName = isSilent
+                    ? (isDryer ? "MGF MINI BOX 24/7 PRIME M" : "MGF MINI BOX 24/7 PRIME S")
+                    : (isDryer ? "MGF 30/7 PRIME M" : "MGF 30/7 PRIME S");
+                compCode = isSilent
+                    ? (isDryer ? "PR-MB100-024-M-15" : "PR-MB100-024-15")
+                    : (isDryer ? "PR-OF100-024-M" : "PR-OF100-024");
+                compLpm = "85 l/dk";
+                compNoise = isSilent ? "50 dB(A)" : "65 dB(A)";
+                compTank = "24 L • 0.75 kW / 1 HP";
+                compCap = "1 Simultane / 1 Ünit";
+                compPrice = (isDryer ? 1650 : 1250) + (isSilent ? 750 : 0);
             } else if (units <= 3) {
-                compName = compType === 'CS-M' ? "MGF CS 30/15 PRIME M" : "MGF 50/15 PRIME M";
-                compCode = "PR-OF200-040-M"; compLpm = "152 l/dk"; compNoise = compType === 'CS-M' ? "53 dB(A)" : "66 dB(A)"; compPrice = compType === 'CS-M' ? 3100 : 2350;
+                compName = isSilent
+                    ? (isDryer ? "MGF CS 30/15 PRIME M" : "MGF CS 30/15 PRIME S")
+                    : (isDryer ? "MGF 50/15 PRIME M" : "MGF 50/15 PRIME S");
+                compCode = isSilent
+                    ? (isDryer ? "PR-CS200-040-M" : "PR-CS200-040")
+                    : (isDryer ? "PR-OF200-040-M" : "PR-OF200-040");
+                compLpm = isDryer ? "152 l/dk" : "170 l/dk";
+                compNoise = isSilent ? "53 dB(A)" : "66 dB(A)";
+                compTank = "40 L • 1.5 kW / 2 HP";
+                compCap = "2 Simultane / 2-3 Ünit";
+                compPrice = (isDryer ? 2350 : 1650) + (isSilent ? 1650 : 0);
+            } else if (units <= 4) {
+                compName = isSilent
+                    ? (isDryer ? "MGF CS 50/25 PRIME M" : "MGF CS 50/25 PRIME S")
+                    : (isDryer ? "MGF 50/25 PRIME M" : "MGF 50/25 PRIME S");
+                compCode = isSilent
+                    ? (isDryer ? "PR-CS300-040-M" : "PR-CS300-040")
+                    : (isDryer ? "PR-OF300-040-M" : "PR-OF300-040");
+                compLpm = isDryer ? "225 l/dk" : "250 l/dk";
+                compNoise = isSilent ? "53 dB(A)" : "66 dB(A)";
+                compTank = "40 L • 2.2 kW / 3 HP";
+                compCap = "3 Simultane / 3-4 Ünit";
+                compPrice = (isDryer ? 3250 : 2350) + (isSilent ? 1650 : 0);
             } else if (units <= 6) {
-                compName = "MGF TANDEM 100/30 PRIME M"; compCode = "PR-OF400-090-MT"; compLpm = "305 l/dk"; compNoise = "69 dB(A)"; compPrice = 7000;
+                compName = isSilent
+                    ? (isDryer ? "MGF CS 100/30 TANDEM PRIME M" : "MGF CS 100/30 TANDEM PRIME S")
+                    : (isDryer ? "MGF 100/30 TANDEM PRIME M" : "MGF 100/30 TANDEM PRIME S");
+                compCode = isSilent
+                    ? (isDryer ? "PR-CS400-090-MT" : "PR-CS400-090-T")
+                    : (isDryer ? "PR-OF400-090-MT" : "PR-OF400-090-T");
+                compLpm = isDryer ? "305 l/dk" : "340 l/dk";
+                compNoise = isSilent ? "56 dB(A)" : "69 dB(A)";
+                compTank = "90 L • 3 kW / 4 HP";
+                compCap = "4 Simultane / 5-6 Ünit";
+                compPrice = (isDryer ? 7000 : 5600) + (isSilent ? 2200 : 0);
+            } else if (units <= 8) {
+                compName = isSilent
+                    ? (isDryer ? "MGF CS 100/50 TANDEM PRIME M" : "MGF CS 100/50 TANDEM PRIME S")
+                    : (isDryer ? "MGF 100/50 TANDEM PRIME M" : "MGF 100/50 TANDEM PRIME S");
+                compCode = isSilent
+                    ? (isDryer ? "PR-CS600-090-MT" : "PR-CS600-090-T")
+                    : (isDryer ? "PR-OF600-090-MT" : "PR-OF600-090-T");
+                compLpm = isDryer ? "450 l/dk" : "500 l/dk";
+                compNoise = isSilent ? "56 dB(A)" : "69 dB(A)";
+                compTank = "90 L • 4.4 kW / 6 HP";
+                compCap = "6 Simultane / 7-8 Ünit";
+                compPrice = (isDryer ? 8000 : 6600) + (isSilent ? 2200 : 0);
+            } else if (units <= 10) {
+                compName = isDryer ? "MGF 200/75 PRIME M (400V)" : "MGF 200/75 PRIME S (400V)";
+                compCode = isDryer ? "PR-OF900-200-MT3" : "PR-OF900-200-T3";
+                compLpm = isDryer ? "660 l/dk" : "750 l/dk";
+                compNoise = "72 dB(A)";
+                compTank = "200 L • 6.6 kW / 9 HP";
+                compCap = "9 Simultane / 9-10 Ünit";
+                compPrice = isDryer ? 11500 : 9500;
+            } else if (units <= 14) {
+                compName = isDryer ? "MGF 270/100 TANDEM PRIME M (IoT)" : "MGF 270/100 TANDEM PRIME S (IoT)";
+                compCode = isDryer ? "PR-OF1200-270-MT3-HD" : "PR-OF1200-270-T3-HD";
+                compLpm = isDryer ? "780 l/dk" : "900 l/dk";
+                compNoise = "75 dB(A)";
+                compTank = "270 L • 8 kW / 11 HP";
+                compCap = "12 Simultane / 14-15 Ünit";
+                compPrice = isDryer ? 15500 : 13200;
             } else {
-                compName = "2x MGF 50/25 PRIME M"; compCode = "2x PR-OF300-040-M"; compLpm = "450 l/dk"; compNoise = "66 dB(A)"; compPrice = 3250; compQty = 2;
+                compName = "MGF 500/150 PRIME S (IoT • 100% Duty)";
+                compCode = "PR-OF1800-500-T3-HD";
+                compLpm = "1.350 l/dk";
+                compNoise = "78 dB(A)";
+                compTank = "500 L • 12 kW / 16.5 HP";
+                compCap = "18 Simultane / 20 Ünit";
+                compPrice = 19500;
             }
+
             document.getElementById('out-comp-title').textContent = compName;
             document.getElementById('out-comp-code').textContent = compCode;
             document.getElementById('out-air-lpm').textContent = compLpm;
             document.getElementById('out-comp-noise').textContent = compNoise;
-            document.getElementById('out-comp-price').textContent = `${compQty} x ${compPrice.toLocaleString('tr-TR')} €`;
-            appState.currentCalcComp = { name: `${compName} DENTAL KOMPRESÖR (${compCode})`, qty: compQty, unitPrice: compPrice };
+            document.getElementById('out-comp-tank').textContent = compTank;
+            document.getElementById('out-comp-cap').textContent = compCap;
+            document.getElementById('out-comp-price').textContent = `${compQty > 1 ? compQty + ' x ' : ''}${compPrice.toLocaleString('tr-TR')} €`;
+            appState.currentCalcComp = { name: `${compName} DENTAL KOMPRESÖR (${compCode} • ${compLpm}) (İTALYA)`, qty: compQty, unitPrice: compPrice };
 
-            let vacName = "MGF HYBRID 2", vacCode = "AS-100-EX" + (hasAmalgam ? "-AS" : ""), vacLpm = "1.500 l/dk", vacPrice = 2950 + (hasAmalgam ? 850 : 0), vacQty = 1;
+            // 2) MGF CERRAHİ ASPİRATÖR HESABI (Resmi MGF Aspirazione 24.07.24 Kataloğu + İZDO 2026)
+            let vacName = "", vacCode = "", vacLpm = "", vacMbar = "", vacNoise = "", vacCap = "", vacPrice = 0, vacQty = 1;
+
             if (appState.suctionType === 'hybrid') {
-                if (units <= 2) { vacName = "MGF HYBRID 1"; vacCode = "AS-094-EX"; vacLpm = "1.200 l/dk"; vacPrice = 2250 + (hasAmalgam ? 850 : 0); }
-                else if (units <= 4) { vacName = "MGF HYBRID 2"; vacLpm = "1.500 l/dk"; vacPrice = 2950 + (hasAmalgam ? 850 : 0); }
-                else if (units <= 6) { vacName = "MGF HYBRID 5"; vacCode = "AS-150-EX"; vacLpm = "2.500 l/dk"; vacPrice = 4150 + (hasAmalgam ? 850 : 0); }
-                else { vacName = "2x MGF HYBRID 2"; vacLpm = "3.000 l/dk"; vacQty = 2; }
+                const amgExtra = hasAmalgam ? 850 : 0;
+                const amgSuffix = hasAmalgam ? "-AS" : "";
+                if (units === 1) {
+                    vacName = hasAmalgam ? "MGF HYBRID A1S (Amalgam Ayırıcılı)" : "MGF HYBRID 1S";
+                    vacCode = hasVacCabinet ? ("AS-075-EX-S" + amgSuffix) : ("AS-075-EX" + amgSuffix);
+                    vacLpm = "1.100 l/dk";
+                    vacMbar = "120/140 mbar";
+                    vacNoise = hasVacCabinet ? "52 dB(A) (Kabinli)" : "63 dB(A)";
+                    vacCap = "1 Simultane / 1-2 Ünit";
+                    vacPrice = 1300 + amgExtra + (hasVacCabinet ? 450 : 0);
+                } else if (units === 2) {
+                    vacName = hasAmalgam ? "MGF HYBRID A1 (Amalgam Ayırıcılı)" : "MGF HYBRID 1";
+                    vacCode = "AS-094-EX" + amgSuffix;
+                    vacLpm = "1.100 / 1.300 l/dk";
+                    vacMbar = "180 mbar";
+                    vacNoise = hasVacCabinet ? "47 dB(A) (CA-CR-060)" : "57/62 dB(A)";
+                    vacCap = "2 Simultane / 2 Ünit";
+                    vacPrice = 2250 + amgExtra + (hasVacCabinet ? 1250 : 0);
+                } else if (units === 3) {
+                    vacName = hasAmalgam ? "MGF HYBRID A2 (Amalgam Ayırıcılı)" : "MGF HYBRID 2";
+                    vacCode = "AS-100-EX" + amgSuffix;
+                    vacLpm = "1.500 l/dk";
+                    vacMbar = "180 mbar";
+                    vacNoise = hasVacCabinet ? "47 dB(A) (CA-CR-060)" : "63 dB(A)";
+                    vacCap = "3 Simultane / 3 Ünit";
+                    vacPrice = 2950 + amgExtra + (hasVacCabinet ? 1250 : 0);
+                } else if (units <= 6) {
+                    vacName = hasAmalgam ? "MGF HYBRID A5 (İnverterli + Amalgam)" : "MGF HYBRID 5 (İnverterli)";
+                    vacCode = "AS-150-EX" + amgSuffix;
+                    vacLpm = "2.500 l/dk";
+                    vacMbar = "180 mbar";
+                    vacNoise = hasVacCabinet ? "47 dB(A) (CA-CR-060)" : "65 dB(A)";
+                    vacCap = "4 Simultane / 4-6 Ünit";
+                    vacPrice = 4150 + amgExtra + (hasVacCabinet ? 1250 : 0);
+                } else if (units <= 12) {
+                    vacName = hasAmalgam ? "2x MGF HYBRID A5 Merkezi (HEPA 14)" : "2x MGF HYBRID 5 Merkezi (HEPA 14)";
+                    vacCode = "AS-300-EX" + amgSuffix;
+                    vacLpm = "5.000 l/dk";
+                    vacMbar = "180 mbar";
+                    vacNoise = "70 dB(A)";
+                    vacCap = "8 Simultane / 7-12 Ünit";
+                    vacPrice = 8300 + (amgExtra * 2);
+                } else {
+                    vacName = hasAmalgam ? "3x MGF HYBRID A5 Merkezi (HEPA 14)" : "3x MGF HYBRID 5 Merkezi (HEPA 14)";
+                    vacCode = "AS-450-EX" + amgSuffix;
+                    vacLpm = "7.500 l/dk";
+                    vacMbar = "180 mbar";
+                    vacNoise = "70 dB(A)";
+                    vacCap = "12 Simultane / 13-18 Ünit";
+                    vacPrice = 12450 + (amgExtra * 3);
+                }
             } else {
-                vacName = "MGF DRY SILENT 4"; vacCode = "AS-200-S"; vacLpm = "3.650 l/dk"; vacPrice = 2400;
+                // Kuru Sistem: ASPIR QC / SILENT Serisi
+                if (units === 1) {
+                    vacName = hasVacCabinet ? "MGF SILENT 1 (Kabinli Kuru)" : "MGF ASPIR 1QC (Kuru)";
+                    vacCode = hasVacCabinet ? "AS-050-S" : "AS-050-QC";
+                    vacLpm = "1.230 l/dk";
+                    vacMbar = "120 mbar";
+                    vacNoise = hasVacCabinet ? "50 dB(A)" : "58 dB(A)";
+                    vacCap = "1 Ünit (0.37 kW)";
+                    vacPrice = hasVacCabinet ? 1350 : 950;
+                } else if (units === 2) {
+                    vacName = hasVacCabinet ? "MGF SILENT 2 (Kabinli Kuru)" : "MGF ASPIR 2QC (Kuru)";
+                    vacCode = hasVacCabinet ? "AS-100-S" : "AS-100-QC";
+                    vacLpm = "2.280 l/dk";
+                    vacMbar = "140 mbar";
+                    vacNoise = hasVacCabinet ? "54 dB(A)" : "62 dB(A)";
+                    vacCap = "2 Ünit (0.75 kW)";
+                    vacPrice = hasVacCabinet ? 1850 : 1400;
+                } else if (units === 3) {
+                    vacName = hasVacCabinet ? "MGF SILENT 3 (Kabinli Kuru)" : "MGF ASPIR 3QC (Kuru)";
+                    vacCode = hasVacCabinet ? "AS-150-S" : "AS-150-QC";
+                    vacLpm = "2.280 l/dk";
+                    vacMbar = "170 mbar";
+                    vacNoise = hasVacCabinet ? "55 dB(A)" : "63 dB(A)";
+                    vacCap = "3 Ünit (1.1 kW)";
+                    vacPrice = hasVacCabinet ? 2250 : 1750;
+                } else if (units <= 6) {
+                    vacName = hasVacCabinet ? "MGF SILENT 4 (Kabinli Kuru)" : "MGF ASPIR 4QC (Kuru)";
+                    vacCode = hasVacCabinet ? "AS-200-S" : "AS-200-QC";
+                    vacLpm = "3.650 l/dk";
+                    vacMbar = "175 mbar";
+                    vacNoise = hasVacCabinet ? "59 dB(A)" : "67 dB(A)";
+                    vacCap = "4-6 Ünit (1.5 kW)";
+                    vacPrice = hasVacCabinet ? 2900 : 2300;
+                } else {
+                    vacName = hasVacCabinet ? "2x MGF SILENT 4 (Çift Hat Kuru)" : "2x MGF ASPIR 4QC (Çift Hat Kuru)";
+                    vacCode = hasVacCabinet ? "2x AS-200-S" : "2x AS-200-QC";
+                    vacLpm = "7.300 l/dk";
+                    vacMbar = "175 mbar";
+                    vacNoise = hasVacCabinet ? "59 dB(A)" : "67 dB(A)";
+                    vacCap = "7+ Ünit (2x 1.5 kW)";
+                    vacPrice = hasVacCabinet ? 2900 : 2300;
+                    vacQty = 2;
+                }
             }
+
             document.getElementById('out-vac-title').textContent = vacName;
             document.getElementById('out-vac-code').textContent = vacCode;
             document.getElementById('out-vac-lpm').textContent = vacLpm;
-            document.getElementById('out-vac-price').textContent = `${vacQty} x ${vacPrice.toLocaleString('tr-TR')} €`;
-            appState.currentCalcVac = { name: `${vacName} DENTAL ASPİRATÖR (${vacCode})`, qty: vacQty, unitPrice: vacPrice };
+            document.getElementById('out-vac-mbar').textContent = vacMbar;
+            document.getElementById('out-vac-noise').textContent = vacNoise;
+            document.getElementById('out-vac-cap').textContent = vacCap;
+            document.getElementById('out-vac-price').textContent = `${vacQty > 1 ? vacQty + ' x ' : ''}${vacPrice.toLocaleString('tr-TR')} €`;
+            appState.currentCalcVac = { name: `${vacName} DENTAL ASPİRATÖR (${vacCode} • ${vacLpm}) (İTALYA)`, qty: vacQty, unitPrice: vacPrice };
 
+            // 3) 2-IN-1 ASPIR-COMP ENTEGRE KABİN (1-4 ÜNİT)
+            const acCard = document.getElementById('aspir-comp-card');
+            if (units <= 4) {
+                acCard.classList.remove('hidden');
+                let acTitle = "", acCode = "", acDesc = "", acNoise = "52 dB(A)", acPrice = 0;
+                if (units <= 2) {
+                    acTitle = isDryer ? "ASPIR-COMP 24/10 GENESI MC (Hybrid 1S)" : "ASPIR-COMP 24/10 GENESI SC (Hybrid 1S)";
+                    acCode = isDryer ? "D-AC150-024-MC" : "D-AC150-024-C";
+                    acDesc = `Kod: ${acCode} • 1-2 Ünit • 24L Tank • Hybrid 1S Yarı Islak • 53x50x130 cm`;
+                    acNoise = isDryer ? "52 dB(A)" : "53 dB(A)";
+                    acPrice = isDryer ? 6500 : 5800;
+                } else if (units === 3) {
+                    acTitle = isDryer ? "ASPIR-COMP 30/15 PRIME MC (Hybrid 2)" : "ASPIR-COMP 30/15 PRIME SC (Hybrid 2)";
+                    acCode = isDryer ? "PR-AC200-040-MC" : "PR-AC200-040-C";
+                    acDesc = `Kod: ${acCode} • 2-3 Ünit • 40L Tank • Hybrid 2 Yarı Islak • 49x75x155 cm`;
+                    acNoise = "55 dB(A)";
+                    acPrice = isDryer ? 8250 : 7500;
+                } else {
+                    acTitle = isDryer ? "ASPIR-COMP 30/25 PRIME MC (Hybrid 5)" : "ASPIR-COMP 30/25 PRIME SC (Hybrid 5)";
+                    acCode = isDryer ? "PR-AC300-040-MC" : "PR-AC300-040-C";
+                    acDesc = `Kod: ${acCode} • 3-4 Ünit • 40L Tank • Hybrid 5 İnverterli • 49x75x155 cm`;
+                    acNoise = "55 dB(A)";
+                    acPrice = isDryer ? 9900 : 9100;
+                }
+                if (hasAmalgam) {
+                    acTitle += " + ECO II+ Amalgam";
+                    acPrice += 850;
+                }
+                document.getElementById('out-ac-title').textContent = acTitle;
+                document.getElementById('out-ac-desc').textContent = acDesc;
+                document.getElementById('out-ac-noise').textContent = acNoise;
+                document.getElementById('out-ac-price').textContent = acPrice.toLocaleString('tr-TR') + ' €';
+                appState.currentCalcAspirComp = { name: `MGF ${acTitle} (${acCode}) (İTALYA)`, qty: 1, unitPrice: acPrice };
+            } else {
+                acCard.classList.add('hidden');
+            }
+
+            // 4) STERİLİZASYON PARKURU
             if (sterilBrand === 'YESON') {
                 document.getElementById('out-steril-cap').textContent = "Yeson Daslav S 23L B-Class Set";
                 document.getElementById('out-steril-price').textContent = "2.000 €";
@@ -2998,6 +3323,7 @@ def konfigurator_page():
 
         function addCalculatedCompToProposal() { addItemToProposal('KOMPRESÖR', appState.currentCalcComp.name, appState.currentCalcComp.qty, appState.currentCalcComp.unitPrice); }
         function addCalculatedVacToProposal() { addItemToProposal('ASPİRATÖR', appState.currentCalcVac.name, appState.currentCalcVac.qty, appState.currentCalcVac.unitPrice); }
+        function addCalculatedAspirCompToProposal() { addItemToProposal('ASPIR-COMP', appState.currentCalcAspirComp.name, appState.currentCalcAspirComp.qty, appState.currentCalcAspirComp.unitPrice); }
         function addCalculatedSterilToProposal() { addItemToProposal('STERİLİZASYON', appState.currentCalcSteril.name, appState.currentCalcSteril.qty, appState.currentCalcSteril.unitPrice); }
 
         function addItemToProposal(cat, name, qty, price) {
