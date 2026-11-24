@@ -1,5 +1,8 @@
 import os
 import sys
+import io
+import struct
+import zlib
 import subprocess
 import hashlib
 from datetime import datetime, timedelta
@@ -313,6 +316,143 @@ FALLBACK_ICON_SVG = r"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512
   </g>
 </svg>"""
 
+# --- PWA İÇİN GERÇEK PNG İKON VE EKRAN GÖRÜNTÜSÜ ÜRETİCİ ---
+_PNG_CACHE = {}
+
+
+def _ensure_pillow():
+    """Pillow kütüphanesini yükler; kurulu değilse otomatik kurmayı dener."""
+    try:
+        from PIL import Image, ImageDraw
+        return Image, ImageDraw
+    except ImportError:
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "Pillow"])
+            from PIL import Image, ImageDraw
+            return Image, ImageDraw
+        except Exception:
+            return None, None
+
+
+def _pure_python_png(width: int, height: int, rgb=(9, 13, 22), accent=(14, 165, 233)) -> bytes:
+    """Pillow kullanılamazsa sıfır bağımlılıkla geçerli PNG üretir."""
+    raw = bytearray()
+    cx, cy = width // 2, height // 2
+    r_outer = min(width, height) // 3
+    for y in range(height):
+        raw.append(0)
+        for x in range(width):
+            if abs(x - cx) + abs(y - cy) < r_outer:
+                raw.extend(accent)
+            else:
+                raw.extend(rgb)
+
+    def _chunk(tag: bytes, data: bytes) -> bytes:
+        return struct.pack("!I", len(data)) + tag + data + struct.pack("!I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+    ihdr = struct.pack("!IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    idat = zlib.compress(bytes(raw), 6)
+    return b"\x89PNG\r\n\x1a\n" + _chunk(b"IHDR", ihdr) + _chunk(b"IDAT", idat) + _chunk(b"IEND", b"")
+
+
+def _build_png_icon(size: int) -> bytes:
+    """icon.jpg / icon.png dosyasını tam size x size PNG olarak dönüştürür veya vektörel PNG çizer."""
+    cache_key = f"icon_{size}"
+    if cache_key in _PNG_CACHE:
+        return _PNG_CACHE[cache_key]
+
+    Image, ImageDraw = _ensure_pillow()
+    if Image is not None:
+        try:
+            for fname in ("icon.jpg", "icon.png"):
+                fpath = os.path.join(BASE_DIR, fname)
+                if os.path.exists(fpath):
+                    with Image.open(fpath) as im:
+                        im = im.convert("RGBA").resize((size, size), Image.LANCZOS)
+                        buf = io.BytesIO()
+                        im.save(buf, format="PNG", optimize=True)
+                        _PNG_CACHE[cache_key] = buf.getvalue()
+                        return _PNG_CACHE[cache_key]
+
+            # Dosya yoksa Klinik Matrix 3D küp ikonunu PNG olarak çiz
+            img = Image.new("RGBA", (size, size), (9, 13, 22, 255))
+            draw = ImageDraw.Draw(img)
+            s = size / 512.0
+            draw.polygon([(256*s, 64*s), (432*s, 162*s), (256*s, 260*s), (80*s, 162*s)], fill=(56, 189, 248, 255))
+            draw.polygon([(80*s, 162*s), (256*s, 260*s), (256*s, 448*s), (80*s, 350*s)], fill=(2, 132, 199, 255))
+            draw.polygon([(256*s, 260*s), (432*s, 162*s), (432*s, 350*s), (256*s, 448*s)], fill=(30, 58, 138, 255))
+            buf = io.BytesIO()
+            img.save(buf, format="PNG", optimize=True)
+            _PNG_CACHE[cache_key] = buf.getvalue()
+            return _PNG_CACHE[cache_key]
+        except Exception:
+            pass
+
+    _PNG_CACHE[cache_key] = _pure_python_png(size, size)
+    return _PNG_CACHE[cache_key]
+
+
+def _build_screenshot_png(width: int, height: int) -> bytes:
+    """PWABuilder mağaza önizlemesi için geçerli ekran görüntüsü PNG üretir."""
+    cache_key = f"shot_{width}x{height}"
+    if cache_key in _PNG_CACHE:
+        return _PNG_CACHE[cache_key]
+
+    Image, ImageDraw = _ensure_pillow()
+    if Image is not None:
+        try:
+            img = Image.new("RGB", (width, height), (9, 13, 22))
+            draw = ImageDraw.Draw(img)
+            # Üst başlık barı
+            draw.rectangle([0, 0, width, 72], fill=(15, 23, 42))
+            draw.rectangle([0, 72, width, 75], fill=(14, 165, 233))
+            # KPI kartları
+            pad = 24
+            cols = 2 if width < 800 else 4
+            card_w = (width - pad * (cols + 1)) // cols
+            for i in range(cols):
+                x0 = pad + i * (card_w + pad)
+                draw.rounded_rectangle([x0, 100, x0 + card_w, 210], radius=16, fill=(17, 24, 39), outline=(56, 189, 248))
+            # İçerik paneli
+            draw.rounded_rectangle([pad, 235, width - pad, height - pad], radius=20, fill=(17, 24, 39), outline=(30, 41, 59))
+            # Merkeze uygulama ikonunu yerleştir
+            icon_size = 160 if width < 800 else 192
+            icon_bytes = _build_png_icon(icon_size)
+            with Image.open(io.BytesIO(icon_bytes)) as ic:
+                ic = ic.convert("RGBA")
+                ix = (width - icon_size) // 2
+                iy = 235 + ((height - pad - 235) - icon_size) // 2
+                img.paste(ic, (ix, iy), ic)
+            buf = io.BytesIO()
+            img.save(buf, format="PNG", optimize=True)
+            _PNG_CACHE[cache_key] = buf.getvalue()
+            return _PNG_CACHE[cache_key]
+        except Exception:
+            pass
+
+    _PNG_CACHE[cache_key] = _pure_python_png(width, height)
+    return _PNG_CACHE[cache_key]
+
+
+@app.get("/icon-192.png")
+def get_icon_192():
+    return Response(content=_build_png_icon(192), media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/icon-512.png")
+def get_icon_512():
+    return Response(content=_build_png_icon(512), media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/screenshot-mobile.png")
+def get_screenshot_mobile():
+    return Response(content=_build_screenshot_png(540, 720), media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/screenshot-desktop.png")
+def get_screenshot_desktop():
+    return Response(content=_build_screenshot_png(1280, 720), media_type="image/png", headers={"Cache-Control": "public, max-age=86400"})
+
 
 @app.get("/icon.jpg")
 @app.get("/icon.png")
@@ -340,9 +480,26 @@ def get_manifest():
         "theme_color": "#090D16",
         "categories": ["business", "medical", "productivity"],
         "icons": [
-            {"src": "/icon.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any"},
-            {"src": "/icon.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "maskable"},
-            {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml"},
+            {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+            {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+        "screenshots": [
+            {
+                "src": "/screenshot-mobile.png",
+                "sizes": "540x720",
+                "type": "image/png",
+                "form_factor": "narrow",
+                "label": "Klinik Matrix Mobil Görünüm",
+            },
+            {
+                "src": "/screenshot-desktop.png",
+                "sizes": "1280x720",
+                "type": "image/png",
+                "form_factor": "wide",
+                "label": "Klinik Matrix Masaüstü Paneli",
+            },
         ],
     }
 
@@ -501,8 +658,8 @@ def index():
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Klinik Matrix">
     <link rel="manifest" href="/manifest.json">
-    <link rel="icon" href="/icon.jpg">
-    <link rel="apple-touch-icon" href="/icon.jpg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
     <title>Klinik Matrix | Dental Satış & CRM Portalı</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
