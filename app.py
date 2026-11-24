@@ -328,17 +328,50 @@ def get_app_icon():
 @app.get("/manifest.json")
 def get_manifest():
     return {
-        "name": "Klinik Matrix CRM",
+        "id": "/",
+        "name": "Klinik Matrix CRM & Konfigüratör",
         "short_name": "Klinik Matrix",
+        "description": "Dental Satış, Stok, Müşteri Görüşmeleri ve İZDO 2026 Teklif Yönetim Portalı",
         "start_url": "/",
+        "scope": "/",
         "display": "standalone",
+        "orientation": "portrait",
         "background_color": "#090D16",
         "theme_color": "#090D16",
+        "categories": ["business", "medical", "productivity"],
         "icons": [
-            {"src": "/icon.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any maskable"},
+            {"src": "/icon.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any"},
+            {"src": "/icon.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "maskable"},
             {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml"},
         ],
     }
+
+
+@app.get("/sw.js")
+def get_service_worker():
+    sw_code = """
+const CACHE_NAME = 'klinik-matrix-v1';
+
+self.addEventListener('install', (event) => {
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(clients.claim());
+});
+
+self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
+    event.respondWith(
+        fetch(event.request).catch(() => caches.match(event.request))
+    );
+});
+"""
+    return Response(
+        content=sw_code,
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/"},
+    )
 
 
 # --- API ENDPOINT'LERİ ---
@@ -886,6 +919,12 @@ def index():
     </div>
 
     <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/sw.js").catch(() => {});
+            });
+        }
+
         let token = localStorage.getItem("token");
         let rawProducts = [];
         let rawStaff = [];
