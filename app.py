@@ -281,6 +281,23 @@ class InteractionCreate(BaseModel):
     offer_url: Optional[str] = ""
 
 
+class PinLoginRequest(BaseModel):
+    pin: str
+
+
+def _normalize_iso_date(raw_date: Optional[str]) -> str:
+    """GG.AA.YYYY veya YYYY-AA-GG formatındaki tarihi PostgreSQL/SQLite uyumlu YYYY-AA-GG formatına çevirir."""
+    val = (raw_date or "").strip()
+    if not val:
+        return datetime.now().strftime("%Y-%m-%d")
+    for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            return datetime.strptime(val, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return datetime.now().strftime("%Y-%m-%d")
+
+
 # --- İKON & PWA MANIFEST ROTALARI ---
 FALLBACK_ICON_SVG = r"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="110" fill="#050811"/>
@@ -541,6 +558,16 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "token_type": "bearer", "full_name": user["full_name"]}
 
 
+@app.post("/api/pin-login")
+def pin_login(payload: PinLoginRequest):
+    """Konfigüratör PIN ekranından girildiğinde de geçerli CRM oturum token'ı üretir."""
+    user = execute_query("SELECT * FROM users WHERE username = ?", ("hakan",), fetch_one=True)
+    if not user or not verify_password(payload.pin.strip(), user["password_hash"]):
+        raise HTTPException(status_code=400, detail="Hatalı PIN kodu")
+    access_token = create_access_token(data={"sub": user["username"], "name": user["full_name"]})
+    return {"access_token": access_token, "token_type": "bearer", "full_name": user["full_name"]}
+
+
 @app.get("/api/me")
 def get_me(username: str = Depends(get_current_user)):
     user = execute_query("SELECT username, full_name, role FROM users WHERE username = ?", (username,), fetch_one=True)
@@ -631,9 +658,19 @@ def get_interactions(_: str = Depends(get_current_user)):
 
 @app.post("/api/interactions")
 def add_interaction(item: InteractionCreate, _: str = Depends(get_current_user)):
+    clean_date = _normalize_iso_date(item.date)
+    clean_customer = (item.customer_name or "").strip()
+    clean_devices = (item.devices or "").strip()
+    clean_notes = (item.notes or "").strip()
+    clean_staff = (item.staff_name or "HAKAN BEHRAMOĞLU").strip()
+    clean_url = (item.offer_url or "").strip()
+
+    if not clean_customer:
+        raise HTTPException(status_code=400, detail="Müşteri / Doktor adı boş olamaz")
+
     execute_query(
         'INSERT INTO interactions (date, customer_name, devices, notes, "YETKİLİ PERSONEL", "TEKLİF URL\'si") VALUES (?, ?, ?, ?, ?, ?)',
-        (item.date, item.customer_name, item.devices, item.notes, item.staff_name or "HAKAN BEHRAMOĞLU", item.offer_url or ""),
+        (clean_date, clean_customer, clean_devices, clean_notes, clean_staff, clean_url),
         commit=True,
     )
     return {"status": "ok"}
@@ -1514,6 +1551,14 @@ def index():
                 await loadInteractions();
             });
         }
+
+        // Konfigüratör iframe'inden yeni teklif kaydedildiğinde CRM Görüşmeler listesini anında yenile
+        window.addEventListener("message", (event) => {
+            if (event.data && event.data.type === "CRM_INTERACTION_SAVED") {
+                loadInteractions();
+                showToast("Teklif CRM Görüşmelerine aktarıldı!");
+            }
+        });
     </script>
 </body>
 </html>"""
@@ -2432,22 +2477,22 @@ def konfigurator_page():
 
         function pressPinKey(digit) {
             const input = document.getElementById('pin-input');
-            if (input.value.length < 4) {
-                input.value += digit;
-                handlePinTyping(input.value);
-            }
-        }
-        function clearPinInput() {
-            document.getElementById('pin-input').value = '';
-            document.getElementById('pin-error-msg').classList.add('hidden');
-        }
-        function handlePinTyping(val) {
-            document.getElementById('pin-error-msg').classList.add('hidden');
-            if (val.length === 4) verifyPinCode();
-        }
-        function verifyPinCode() {
+        async function verifyPinCode() {
             const input = document.getElementById('pin-input');
-            if (input.value === MANNAS_PIN) {
+            const enteredPin = input.value.trim();
+            if (enteredPin === MANNAS_PIN) {
+                try {
+                    const res = await fetch('/api/pin-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pin: enteredPin })
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        localStorage.setItem('token', data.access_token);
+                        localStorage.setItem('user_name', data.full_name || 'Hakan Behramoğlu');
+                    }
+                } catch (e) {}
                 document.getElementById('pin-lock-overlay').classList.add('hidden');
                 input.value = '';
                 showToast('Klinik Matrix yetkili girişi onaylandı.');
@@ -3477,126 +3522,126 @@ def konfigurator_page():
                 }
                 if (hasAmalgam) {
                     acTitle += " + ECO II+ Amalgam";
-                    acPrice += 850;
-                }
-                document.getElementById('out-ac-title').textContent = acTitle;
-                document.getElementById('out-ac-desc').textContent = acDesc;
-                document.getElementById('out-ac-noise').textContent = acNoise;
-                document.getElementById('out-ac-price').textContent = acPrice.toLocaleString('tr-TR') + ' €';
-                appState.currentCalcAspirComp = { name: `MGF ${acTitle} (${acCode}) (İTALYA)`, qty: 1, unitPrice: acPrice };
-            } else {
-                acCard.classList.add('hidden');
+        function parseProposalDateToIso(rawVal) {
+            const val = (rawVal || '').trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+            const m = val.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+            if (m) {
+                const dd = m[1].padStart(2, '0');
+                const mm = m[2].padStart(2, '0');
+                return `${m[3]}-${mm}-${dd}`;
             }
-
-            // 4) STERİLİZASYON PARKURU
-            if (sterilBrand === 'YESON') {
-                document.getElementById('out-steril-cap').textContent = "Yeson Daslav S 23L B-Class Set";
-                document.getElementById('out-steril-price').textContent = "2.000 €";
-                appState.currentCalcSteril = { name: "YESON DASLAV S 23 Lt B-CLASS OTOKLAV SETİ", qty: 1, unitPrice: 2000 };
-            } else if (sterilBrand === 'SW_PLATINUM') {
-                const vol = units >= 5 ? 28 : 22, pr = units >= 5 ? 5490 : 4350;
-                document.getElementById('out-steril-cap').textContent = `Stern Weber SW ${vol} Platinum Set`;
-                document.getElementById('out-steril-price').textContent = `${pr.toLocaleString('tr-TR')} €`;
-                appState.currentCalcSteril = { name: `STERN WEBER SW ${vol} PLATINUM OTOKLAV + MILLSEAL`, qty: 1, unitPrice: pr };
-            } else {
-                const vol = units >= 5 ? 28 : 22, pr = units >= 5 ? 4350 : 3950;
-                document.getElementById('out-steril-cap').textContent = `Stern Weber SW ${vol} 3'lü Set`;
-                document.getElementById('out-steril-price').textContent = `${pr.toLocaleString('tr-TR')} €`;
-                appState.currentCalcSteril = { name: `STERN WEBER SW ${vol} OTOKLAV 3'LÜ SET`, qty: 1, unitPrice: pr };
-            }
-        }
-
-        function setSuctionType(type) {
-            appState.suctionType = type;
-            document.getElementById('suction-hybrid').className = type === 'hybrid'
-                ? 'py-2 px-3 rounded-xl border border-sky-500 bg-sky-500/15 text-xs font-semibold text-white'
-                : 'py-2 px-3 rounded-xl border border-white/10 bg-gray-800 text-xs font-medium text-gray-400';
-            document.getElementById('suction-dry').className = type === 'dry'
-                ? 'py-2 px-3 rounded-xl border border-sky-500 bg-sky-500/15 text-xs font-semibold text-white'
-                : 'py-2 px-3 rounded-xl border border-white/10 bg-gray-800 text-xs font-medium text-gray-400';
-            updateEngineeringCalc();
-        }
-
-        function addCalculatedCompToProposal() { addItemToProposal('KOMPRESÖR', appState.currentCalcComp.name, appState.currentCalcComp.qty, appState.currentCalcComp.unitPrice); }
-        function addCalculatedVacToProposal() { addItemToProposal('ASPİRATÖR', appState.currentCalcVac.name, appState.currentCalcVac.qty, appState.currentCalcVac.unitPrice); }
-        function addCalculatedAspirCompToProposal() { addItemToProposal('ASPIR-COMP', appState.currentCalcAspirComp.name, appState.currentCalcAspirComp.qty, appState.currentCalcAspirComp.unitPrice); }
-        function addCalculatedSterilToProposal() { addItemToProposal('STERİLİZASYON', appState.currentCalcSteril.name, appState.currentCalcSteril.qty, appState.currentCalcSteril.unitPrice); }
-
-        function addItemToProposal(cat, name, qty, price) {
-            appState.proposalItems.push({ cat, name, qty: parseInt(qty, 10), price: parseFloat(price) });
-            renderProposalTable();
-            showToast(`${name.substring(0, 32)}... teklife eklendi.`);
-        }
-        function removeProposalItem(idx) { appState.proposalItems.splice(idx, 1); renderProposalTable(); }
-        function updateProposalQty(idx, val) { appState.proposalItems[idx].qty = Math.max(1, parseInt(val || 1, 10)); renderProposalTable(); }
-        function updateProposalPrice(idx, val) { appState.proposalItems[idx].price = Math.max(0, parseFloat(val || 0)); renderProposalTable(); }
-        function clearProposalItems() { appState.proposalItems = []; renderProposalTable(); showToast("Teklif tablosu temizlendi."); }
-
-        function addCustomRow() {
-            const cat = document.getElementById('custom-item-cat').value.trim() || 'EKİPMAN';
-            const name = document.getElementById('custom-item-name').value.trim();
-            const qty = parseInt(document.getElementById('custom-item-qty').value || 1, 10);
-            const price = parseFloat(document.getElementById('custom-item-price').value || 0);
-            if (!name) { showToast("Ürün adı yazın."); return; }
-            addItemToProposal(cat.toUpperCase(), name.toUpperCase(), qty, price);
-            document.getElementById('custom-item-name').value = '';
-            document.getElementById('custom-item-price').value = '';
-        }
-
-        function renderProposalTable() {
-            const tbody = document.getElementById('proposal-tbody');
-            tbody.innerHTML = '';
-            let grandTotal = 0;
-            if (appState.proposalItems.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-gray-500 text-xs">Teklif tablosu boş. Diğer sekmelerden ürün ekleyin.</td></tr>`;
-            }
-            appState.proposalItems.forEach((it, idx) => {
-                const sub = it.qty * it.price;
-                grandTotal += sub;
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-white/5 transition-colors';
-                tr.innerHTML = `
-                    <td class="py-2.5 px-4 font-mono text-xs font-bold text-sky-400 whitespace-nowrap">${it.cat}</td>
-                    <td class="py-2.5 px-4 text-gray-200 text-xs leading-relaxed">${it.name}</td>
-                    <td class="py-2.5 px-4 text-center"><input type="number" value="${it.qty}" min="1" onchange="updateProposalQty(${idx}, this.value)" class="w-12 bg-gray-900 border border-white/15 rounded py-1 text-center text-white font-bold text-xs"></td>
-                    <td class="py-2.5 px-4 text-right"><input type="number" value="${it.price}" step="10" onchange="updateProposalPrice(${idx}, this.value)" class="w-20 bg-gray-900 border border-white/15 rounded py-1 px-2 text-right text-gray-200 font-mono text-xs"></td>
-                    <td class="py-2.5 px-4 text-right font-mono font-bold text-white whitespace-nowrap">${sub.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} €</td>
-                    <td class="py-2.5 px-2 text-center no-print"><button onclick="removeProposalItem(${idx})" class="text-gray-500 hover:text-rose-400 p-1">✕</button></td>`;
-                tbody.appendChild(tr);
-            });
-            const fmt = grandTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' €';
-            document.getElementById('proposal-total-cell').textContent = fmt;
-            document.getElementById('header-total-badge').textContent = grandTotal.toLocaleString('tr-TR') + ' €';
-            document.getElementById('tab-proposal-count').textContent = appState.proposalItems.length;
+            return new Date().toISOString().split('T')[0];
         }
 
         async function saveProposalToCRM() {
-            const token = localStorage.getItem("token");
-            if (!token) { showToast("CRM'e kaydetmek için ana portaldan giriş yapın."); return; }
-            const customer = document.getElementById('prop-customer').value.trim();
-            if (!customer || appState.proposalItems.length === 0) {
-                showToast("Lütfen Müşteri Adı girin ve en az 1 ürün ekleyin.");
+            let token = localStorage.getItem("token");
+            if (!token) {
+                // Bağımsız ekrandan PIN ile girildiyse otomatik token almayı dene
+                try {
+                    const pinRes = await fetch("/api/pin-login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ pin: MANNAS_PIN })
+                    });
+                    if (pinRes.ok) {
+                        const pinData = await pinRes.json();
+                        token = pinData.access_token;
+                        localStorage.setItem("token", token);
+                    }
+                } catch (e) {}
+            }
+            if (!token) {
+                showToast("CRM'e kaydetmek için ana portaldan giriş yapın.");
                 return;
             }
-            const devices = appState.proposalItems.filter(x => !x.name.startsWith("  ↳")).map(x => `${x.qty}x ${x.cat}`).join(", ") || "Klinik Teklifi";
-            let total = 0;
-            appState.proposalItems.forEach(x => total += x.qty * x.price);
-            const notes = `Teklif Toplamı: ${total.toLocaleString('tr-TR')} € | Ürünler: ` + appState.proposalItems.filter(x => !x.name.startsWith("  ↳")).map(x => x.name).join(" + ");
 
-            const res = await fetch("/api/interactions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-                body: JSON.stringify({
-                    date: new Date().toISOString().split("T")[0],
-                    customer_name: customer,
-                    devices: devices.substring(0, 120),
-                    notes: notes.substring(0, 600),
-                    staff_name: "HAKAN BEHRAMOĞLU",
-                    offer_url: ""
-                })
+            const customer = document.getElementById('prop-customer').value.trim();
+            if (!customer) {
+                showToast("Lütfen UNVAN (Doktor / Müşteri Adı) alanını doldurun.");
+                document.getElementById('prop-customer').focus();
+                return;
+            }
+            if (appState.proposalItems.length === 0) {
+                showToast("Lütfen teklife en az 1 ürün ekleyin.");
+                return;
+            }
+
+            const isoDate = parseProposalDateToIso(document.getElementById('prop-date').value);
+            const city = document.getElementById('prop-city').value.trim();
+            const phone = document.getElementById('prop-phone').value.trim();
+            const agreed = document.getElementById('prop-agreed-price').value.trim();
+            const vat = document.getElementById('prop-vat').value.trim();
+            const down = document.getElementById('prop-downpayment').value.trim();
+            const inst = document.getElementById('prop-installments').value.trim();
+            const firstDate = document.getElementById('prop-first-date').value.trim();
+            const repRaw = document.getElementById('prop-rep').value.trim();
+            const staffName = (repRaw.split('(')[0].trim() || 'HAKAN BEHRAMOĞLU').toUpperCase();
+
+            // Ana kalemler (alt föy satırları hariç)
+            const mainItems = appState.proposalItems.filter(x => !x.name.trim().startsWith('↳'));
+            const sourceItems = mainItems.length > 0 ? mainItems : appState.proposalItems;
+
+            // Cihazlar sütunu: Gerçek ürün adlarını özetle
+            const devicesSummary = sourceItems.map(x => {
+                const shortName = x.name.split('(')[0].split('[')[0].trim();
+                return `${x.qty}x ${shortName || x.cat}`;
+            }).join(', ');
+
+            // Teklif toplamı ve satır detayları
+            let total = 0;
+            const itemLines = [];
+            appState.proposalItems.forEach(x => {
+                const sub = (x.qty || 1) * (x.price || 0);
+                total += sub;
+                const isSub = x.name.trim().startsWith('↳');
+                if (!isSub || sub > 0) {
+                    const priceTxt = sub > 0 ? ` (${sub.toLocaleString('tr-TR')} €)` : '';
+                    itemLines.push(`${x.qty}x ${x.name.trim()}${priceTxt}`);
+                }
             });
-            if (res.ok) showToast("Teklif CRM Görüşmelerine kaydedildi!");
-            else showToast("Kayıt sırasında hata oluştu.");
+
+            const metaParts = [];
+            if (city) metaParts.push(`Şehir: ${city}`);
+            if (phone) metaParts.push(`Tel: ${phone}`);
+            if (agreed) metaParts.push(`Anlaşılan: ${agreed}`);
+            if (vat) metaParts.push(`KDV: ${vat}`);
+            if (down) metaParts.push(`Peşinat: ${down}`);
+            if (inst) metaParts.push(`Vade: ${inst}`);
+            if (firstDate) metaParts.push(`İlk Senet: ${firstDate}`);
+
+            const notesParts = [
+                `Teklif Toplamı: ${total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} € + KDV`,
+                `İçerik: ${itemLines.join(' | ')}`
+            ];
+            if (metaParts.length > 0) notesParts.push(metaParts.join(' • '));
+
+            try {
+                const res = await fetch("/api/interactions", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                    body: JSON.stringify({
+                        date: isoDate,
+                        customer_name: customer,
+                        devices: devicesSummary,
+                        notes: notesParts.join(' || '),
+                        staff_name: staffName,
+                        offer_url: ""
+                    })
+                });
+
+                if (res.ok) {
+                    showToast(`${customer} teklifi CRM Görüşmelerine kaydedildi!`);
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({ type: 'CRM_INTERACTION_SAVED' }, '*');
+                    }
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    showToast(`CRM kayıt hatası: ${errData.detail || res.status}`);
+                }
+            } catch (err) {
+                showToast("Sunucuya bağlanılamadı, kayıt yapılamadı.");
+            }
         }
 
         function getMannasLogoDataUrl() {
