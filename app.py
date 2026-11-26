@@ -232,6 +232,56 @@ def init_db():
                 commit=True,
             )
 
+    # PostgreSQL'de manuel kayıt eklemelerinden kaynaklanabilecek ID sayaç kaymalarını düzelt
+    if IS_POSTGRES:
+        for tbl in ("users", "staff", "products", "sales", "interactions"):
+            _sync_pg_sequence(tbl)
+
+
+def _sync_pg_sequence(table_name: str):
+    """PostgreSQL serial ID sayacını tablodaki en yüksek ID değerine eşitler."""
+    if not IS_POSTGRES:
+        return
+    try:
+        execute_query(
+            f"SELECT setval(pg_get_serial_sequence('{table_name}', 'id'), COALESCE((SELECT MAX(id) FROM {table_name}), 1), true)",
+            commit=True,
+        )
+    except Exception:
+        pass
+
+
+def _get_interaction_column_map():
+    """Veritabanındaki interactions tablosunun gerçek kolon adlarını otomatik tespit eder."""
+    cols = []
+    try:
+        if IS_POSTGRES:
+            rows = execute_query(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'interactions'",
+                fetch_all=True,
+            )
+            cols = [r["column_name"] for r in (rows or [])]
+        else:
+            rows = execute_query("PRAGMA table_info(interactions)", fetch_all=True)
+            cols = [r["name"] for r in (rows or [])]
+    except Exception:
+        cols = []
+
+    staff_col = None
+    url_col = None
+    for c in cols:
+        cl = c.lower()
+        if staff_col is None and ("personel" in cl or "staff" in cl or "yetk" in cl):
+            staff_col = c
+        if url_col is None and ("url" in cl or "teklif" in cl or "link" in cl):
+            url_col = c
+
+    return {
+        "cols": cols,
+        "staff_col": staff_col,
+        "url_col": url_col,
+    }
+
 
 init_db()
 
@@ -642,16 +692,22 @@ def get_staff(_: str = Depends(get_current_user)):
 @app.get("/api/interactions")
 def get_interactions(_: str = Depends(get_current_user)):
     rows = execute_query("SELECT * FROM interactions ORDER BY id DESC", fetch_all=True)
+    col_map = _get_interaction_column_map()
+    staff_col = col_map["staff_col"]
+    url_col = col_map["url_col"]
+
     normalized = []
     for r in rows:
+        staff_val = (r.get(staff_col) if staff_col else None) or r.get("YETKİLİ PERSONEL") or r.get("staff_name") or ""
+        url_val = (r.get(url_col) if url_col else None) or r.get("TEKLİF URL'si") or r.get("offer_url") or ""
         normalized.append({
             "id": r.get("id"),
             "date": str(r.get("date") or ""),
             "customer_name": r.get("customer_name") or "",
             "devices": r.get("devices") or "",
             "notes": r.get("notes") or "",
-            "staff_name": r.get("YETKİLİ PERSONEL") or r.get("staff_name") or "",
-            "offer_url": r.get("TEKLİF URL'si") or r.get("offer_url") or "",
+            "staff_name": str(staff_val),
+            "offer_url": str(url_val),
         })
     return normalized
 
@@ -668,11 +724,35 @@ def add_interaction(item: InteractionCreate, _: str = Depends(get_current_user))
     if not clean_customer:
         raise HTTPException(status_code=400, detail="Müşteri / Doktor adı boş olamaz")
 
-    execute_query(
-        'INSERT INTO interactions (date, customer_name, devices, notes, "YETKİLİ PERSONEL", "TEKLİF URL\'si") VALUES (?, ?, ?, ?, ?, ?)',
-        (clean_date, clean_customer, clean_devices, clean_notes, clean_staff, clean_url),
-        commit=True,
-    )
+    col_map = _get_interaction_column_map()
+    insert_cols = ["date", "customer_name", "devices", "notes"]
+    insert_vals = [clean_date, clean_customer, clean_devices, clean_notes]
+
+    if col_map["staff_col"]:
+        insert_cols.append(f'"{col_map["staff_col"]}"')
+        insert_vals.append(clean_staff)
+    if col_map["url_col"]:
+        insert_cols.append(f'"{col_map["url_col"]}"')
+        insert_vals.append(clean_url)
+
+    placeholders = ", ".join(["?"] * len(insert_cols))
+    sql = f"INSERT INTO interactions ({', '.join(insert_cols)}) VALUES ({placeholders})"
+
+    try:
+        if IS_POSTGRES:
+            _sync_pg_sequence("interactions")
+        execute_query(sql, tuple(insert_vals), commit=True)
+    except Exception as e:
+        # Eğer PostgreSQL ID sayacı senkron dışındaysa düzeltip bir kez daha dene
+        if IS_POSTGRES:
+            try:
+                _sync_pg_sequence("interactions")
+                execute_query(sql, tuple(insert_vals), commit=True)
+                return {"status": "ok"}
+            except Exception as e2:
+                raise HTTPException(status_code=500, detail=f"Veritabanı kayıt hatası: {str(e2)}")
+        raise HTTPException(status_code=500, detail=f"Veritabanı kayıt hatası: {str(e)}")
+
     return {"status": "ok"}
 
 
@@ -2312,7 +2392,7 @@ def konfigurator_page():
                     <div class="flex flex-wrap items-center gap-2">
                         <button onclick="resetToBlankTemplate()" class="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold">Boş Şablon</button>
                         <button onclick="clearProposalItems()" class="px-3 py-1.5 rounded-xl bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white text-xs font-semibold">Temizle</button>
-                        <button onclick="saveProposalToCRM()" class="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5">
+                        <button id="btn-save-crm" onclick="saveProposalToCRM()" class="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5">
                             <i class="ph-bold ph-database"></i> CRM Görüşmelerine Kaydet
                         </button>
                         <button onclick="copyOfficialProposal()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5">
@@ -2326,6 +2406,7 @@ def konfigurator_page():
                         </button>
                     </div>
                 </div>
+                <div id="crm-save-status" class="no-print hidden px-4 py-2.5 rounded-xl text-xs font-semibold border"></div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-gray-900/70 p-4 rounded-2xl border border-white/10 text-xs">
                     <div>
@@ -3676,37 +3757,64 @@ def konfigurator_page():
             return new Date().toISOString().split('T')[0];
         }
 
-        async function saveProposalToCRM() {
-            let token = localStorage.getItem("token");
-            if (!token) {
-                // Bağımsız ekrandan PIN ile girildiyse otomatik token almayı dene
-                try {
-                    const pinRes = await fetch("/api/pin-login", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ pin: MANNAS_PIN })
-                    });
-                    if (pinRes.ok) {
-                        const pinData = await pinRes.json();
-                        token = pinData.access_token;
-                        localStorage.setItem("token", token);
-                    }
-                } catch (e) {}
-            }
-            if (!token) {
-                showToast("CRM'e kaydetmek için ana portaldan giriş yapın.");
-                return;
-            }
+        function setCrmSaveStatus(msg, isError = false) {
+            const box = document.getElementById('crm-save-status');
+            if (!box) return;
+            box.textContent = msg;
+            box.className = isError
+                ? 'no-print px-4 py-2.5 rounded-xl text-xs font-semibold border bg-rose-500/15 border-rose-500/40 text-rose-300'
+                : 'no-print px-4 py-2.5 rounded-xl text-xs font-semibold border bg-emerald-500/15 border-emerald-500/40 text-emerald-300';
+            box.classList.remove('hidden');
+        }
 
+        function safeGetToken() {
+            try { return localStorage.getItem("token"); } catch (e) { return null; }
+        }
+        function safeSetToken(tok) {
+            try { localStorage.setItem("token", tok); } catch (e) {}
+        }
+
+        async function fetchFreshPinToken() {
+            try {
+                const pinRes = await fetch("/api/pin-login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ pin: MANNAS_PIN })
+                });
+                if (pinRes.ok) {
+                    const pinData = await pinRes.json();
+                    if (pinData.access_token) {
+                        safeSetToken(pinData.access_token);
+                        return pinData.access_token;
+                    }
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        async function saveProposalToCRM() {
+            const btn = document.getElementById('btn-save-crm');
             const customer = document.getElementById('prop-customer').value.trim();
             if (!customer) {
+                setCrmSaveStatus("Lütfen önce UNVAN (Doktor / Müşteri Adı) alanını doldurun.", true);
                 showToast("Lütfen UNVAN (Doktor / Müşteri Adı) alanını doldurun.");
                 document.getElementById('prop-customer').focus();
                 return;
             }
             if (appState.proposalItems.length === 0) {
+                setCrmSaveStatus("Lütfen teklife en az 1 ürün ekleyin.", true);
                 showToast("Lütfen teklife en az 1 ürün ekleyin.");
                 return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> Kaydediliyor...';
+            }
+
+            let token = safeGetToken();
+            if (!token) {
+                token = await fetchFreshPinToken();
             }
 
             const isoDate = parseProposalDateToIso(document.getElementById('prop-date').value);
@@ -3758,31 +3866,54 @@ def konfigurator_page():
             ];
             if (metaParts.length > 0) notesParts.push(metaParts.join(' • '));
 
+            const requestBody = JSON.stringify({
+                date: isoDate,
+                customer_name: customer,
+                devices: devicesSummary,
+                notes: notesParts.join(' || '),
+                staff_name: staffName,
+                offer_url: ""
+            });
+
             try {
-                const res = await fetch("/api/interactions", {
+                let res = await fetch("/api/interactions", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-                    body: JSON.stringify({
-                        date: isoDate,
-                        customer_name: customer,
-                        devices: devicesSummary,
-                        notes: notesParts.join(' || '),
-                        staff_name: staffName,
-                        offer_url: ""
-                    })
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (token || "") },
+                    body: requestBody
                 });
 
+                // Token süresi dolmuşsa (401) otomatik yenileyip tekrar kaydet
+                if (res.status === 401) {
+                    token = await fetchFreshPinToken();
+                    if (token) {
+                        res = await fetch("/api/interactions", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                            body: requestBody
+                        });
+                    }
+                }
+
                 if (res.ok) {
+                    setCrmSaveStatus(`✓ ${customer} (${isoDate}) teklifi CRM Görüşmelerine başarıyla kaydedildi!`, false);
                     showToast(`${customer} teklifi CRM Görüşmelerine kaydedildi!`);
                     if (window.parent && window.parent !== window) {
                         window.parent.postMessage({ type: 'CRM_INTERACTION_SAVED' }, '*');
                     }
                 } else {
                     const errData = await res.json().catch(() => ({}));
-                    showToast(`CRM kayıt hatası: ${errData.detail || res.status}`);
+                    const errText = errData.detail || `Sunucu hatası (${res.status})`;
+                    setCrmSaveStatus(`Kayıt başarısız: ${errText}`, true);
+                    showToast(`CRM kayıt hatası: ${errText}`);
                 }
             } catch (err) {
+                setCrmSaveStatus("Sunucuya bağlanılamadı, internet bağlantınızı kontrol edin.", true);
                 showToast("Sunucuya bağlanılamadı, kayıt yapılamadı.");
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="ph-bold ph-database"></i> CRM Görüşmelerine Kaydet';
+                }
             }
         }
 
