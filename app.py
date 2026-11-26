@@ -2477,6 +2477,20 @@ def konfigurator_page():
 
         function pressPinKey(digit) {
             const input = document.getElementById('pin-input');
+            if (input.value.length < 4) {
+                input.value += digit;
+                handlePinTyping(input.value);
+            }
+        }
+        function clearPinInput() {
+            const input = document.getElementById('pin-input');
+            input.value = '';
+            document.getElementById('pin-error-msg').classList.add('hidden');
+        }
+        function handlePinTyping(val) {
+            document.getElementById('pin-error-msg').classList.add('hidden');
+            if (val.length === 4) verifyPinCode();
+        }
         async function verifyPinCode() {
             const input = document.getElementById('pin-input');
             const enteredPin = input.value.trim();
@@ -3522,6 +3536,134 @@ def konfigurator_page():
                 }
                 if (hasAmalgam) {
                     acTitle += " + ECO II+ Amalgam";
+                    acPrice += 850;
+                }
+                document.getElementById('out-ac-title').textContent = acTitle;
+                document.getElementById('out-ac-price').textContent = acPrice.toLocaleString('tr-TR') + ' €';
+                document.getElementById('out-ac-desc').textContent = acDesc;
+                document.getElementById('out-ac-noise').textContent = acNoise;
+                appState.currentCalcAspirComp = { name: `MGF ${acTitle} (${acCode}) (İTALYA)`, qty: 1, unitPrice: acPrice };
+            } else {
+                acCard.classList.add('hidden');
+            }
+
+            // 4) STERİLİZASYON (OTOKLAV)
+            if (sterilBrand === 'YESON') {
+                document.getElementById('out-steril-cap').textContent = "Yeson Daslav S 23L B-Class Set";
+                document.getElementById('out-steril-price').textContent = "2.000 €";
+                appState.currentCalcSteril = { name: "YESON DASLAV S 23 Lt B-CLASS OTOKLAV (KAPAMA + DİSTİLE SU DAHİL) (ÇİN)", qty: 1, unitPrice: 2000 };
+            } else if (sterilBrand === 'SW_PLATINUM') {
+                const vol = units >= 5 ? 28 : 22;
+                const pr = units >= 5 ? 5490 : 4350;
+                document.getElementById('out-steril-cap').textContent = `Stern Weber SW ${vol} Platinum Set (Millseal Dahil)`;
+                document.getElementById('out-steril-price').textContent = `${pr.toLocaleString('tr-TR')} €`;
+                appState.currentCalcSteril = { name: `STERN WEBER SW ${vol} PLATINUM B-CLASS OTOKLAV + MILLSEAL KAPAMA (İTALYA)`, qty: 1, unitPrice: pr };
+            } else {
+                const vol = units >= 5 ? 28 : 22;
+                const pr = units >= 5 ? 4350 : 3950;
+                document.getElementById('out-steril-cap').textContent = `Stern Weber SW ${vol} 3'lü Set`;
+                document.getElementById('out-steril-price').textContent = `${pr.toLocaleString('tr-TR')} €`;
+                appState.currentCalcSteril = { name: `STERN WEBER SW ${vol} B-CLASS OTOKLAV 3'LÜ SET (İTALYA)`, qty: 1, unitPrice: pr };
+            }
+        }
+
+        function setSuctionType(type) {
+            appState.suctionType = type;
+            const bHy = document.getElementById('suction-hybrid');
+            const bDr = document.getElementById('suction-dry');
+            if (type === 'hybrid') {
+                bHy.className = 'py-2 px-3 rounded-xl border border-sky-500 bg-sky-500/15 text-xs font-semibold text-white';
+                bDr.className = 'py-2 px-3 rounded-xl border border-white/10 bg-gray-800 text-xs font-medium text-gray-400';
+            } else {
+                bDr.className = 'py-2 px-3 rounded-xl border border-sky-500 bg-sky-500/15 text-xs font-semibold text-white';
+                bHy.className = 'py-2 px-3 rounded-xl border border-white/10 bg-gray-800 text-xs font-medium text-gray-400';
+            }
+            updateEngineeringCalc();
+        }
+
+        function addCalculatedCompToProposal() {
+            addItemToProposal('KOMPRESÖR', appState.currentCalcComp.name, appState.currentCalcComp.qty, appState.currentCalcComp.unitPrice);
+        }
+        function addCalculatedVacToProposal() {
+            addItemToProposal('ASPİRATÖR', appState.currentCalcVac.name, appState.currentCalcVac.qty, appState.currentCalcVac.unitPrice);
+        }
+        function addCalculatedAspirCompToProposal() {
+            addItemToProposal('ASPIR-COMP', appState.currentCalcAspirComp.name, appState.currentCalcAspirComp.qty, appState.currentCalcAspirComp.unitPrice);
+        }
+        function addCalculatedSterilToProposal() {
+            addItemToProposal('STERİLİZASYON', appState.currentCalcSteril.name, appState.currentCalcSteril.qty, appState.currentCalcSteril.unitPrice);
+        }
+
+        // TEKLİF TABLOSU YÖNETİMİ
+        function addItemToProposal(cat, name, qty, price) {
+            appState.proposalItems.push({ cat, name, qty: parseInt(qty, 10) || 1, price: parseFloat(price) || 0 });
+            renderProposalTable();
+            showToast(`${name.substring(0, 32)}... teklife eklendi.`);
+        }
+        function removeProposalItem(idx) {
+            appState.proposalItems.splice(idx, 1);
+            renderProposalTable();
+        }
+        function updateProposalQty(idx, val) {
+            appState.proposalItems[idx].qty = Math.max(1, parseInt(val || 1, 10));
+            renderProposalTable();
+        }
+        function updateProposalPrice(idx, val) {
+            appState.proposalItems[idx].price = Math.max(0, parseFloat(val || 0));
+            renderProposalTable();
+        }
+        function clearProposalItems() {
+            appState.proposalItems = [];
+            renderProposalTable();
+            showToast("Teklif tablosu temizlendi.");
+        }
+        function addCustomRow() {
+            const cat = document.getElementById('custom-item-cat').value.trim() || 'EKİPMAN';
+            const name = document.getElementById('custom-item-name').value.trim();
+            const qty = parseInt(document.getElementById('custom-item-qty').value || 1, 10);
+            const price = parseFloat(document.getElementById('custom-item-price').value || 0);
+            if (!name) { showToast("Ürün adı yazın."); return; }
+            addItemToProposal(cat.toUpperCase(), name.toUpperCase(), qty, price);
+            document.getElementById('custom-item-name').value = '';
+            document.getElementById('custom-item-price').value = '';
+        }
+
+        function renderProposalTable() {
+            const tbody = document.getElementById('proposal-tbody');
+            tbody.innerHTML = '';
+            let grandTotal = 0;
+
+            if (appState.proposalItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-gray-500 text-xs">Teklif tablosu boş. Ünit Föyü veya diğer sekmelerden ürün ekleyin.</td></tr>`;
+            }
+
+            appState.proposalItems.forEach((it, idx) => {
+                const sub = it.qty * it.price;
+                grandTotal += sub;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-white/5 transition-colors';
+                tr.innerHTML = `
+                    <td class="py-2.5 px-4 font-mono text-xs font-bold text-sky-400 whitespace-nowrap">${it.cat}</td>
+                    <td class="py-2.5 px-4 text-gray-200 text-xs leading-relaxed">${it.name}</td>
+                    <td class="py-2.5 px-4 text-center">
+                        <input type="number" value="${it.qty}" min="1" onchange="updateProposalQty(${idx}, this.value)" class="w-12 bg-gray-900 border border-white/15 rounded py-1 text-center text-white font-bold text-xs">
+                    </td>
+                    <td class="py-2.5 px-4 text-right">
+                        <input type="number" value="${it.price}" step="10" onchange="updateProposalPrice(${idx}, this.value)" class="w-20 bg-gray-900 border border-white/15 rounded py-1 px-2 text-right text-gray-200 font-mono text-xs">
+                    </td>
+                    <td class="py-2.5 px-4 text-right font-mono font-bold text-white whitespace-nowrap">${sub.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} €</td>
+                    <td class="py-2.5 px-2 text-center no-print">
+                        <button onclick="removeProposalItem(${idx})" class="text-gray-500 hover:text-rose-400 p-1">✕</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+
+            const fmt = grandTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' €';
+            document.getElementById('proposal-total-cell').textContent = fmt;
+            document.getElementById('header-total-badge').textContent = grandTotal.toLocaleString('tr-TR') + ' €';
+            document.getElementById('tab-proposal-count').textContent = appState.proposalItems.length;
+        }
+
         function parseProposalDateToIso(rawVal) {
             const val = (rawVal || '').trim();
             if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
